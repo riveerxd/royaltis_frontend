@@ -1,23 +1,24 @@
 import React, {createRef, useEffect, useMemo, useState} from 'react';
-import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import MapView, {Marker, Polygon} from 'react-native-maps';
+import {Text, TouchableOpacity, View} from "react-native";
+import MapView, {Marker, Polygon,} from 'react-native-maps';
 import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {getCurrentPositionAsync, requestForegroundPermissionsAsync} from "expo-location";
-import {Entypo, Feather, FontAwesome, FontAwesome5, MaterialIcons} from "@expo/vector-icons";
+import {Entypo, Feather, FontAwesome, FontAwesome5, Ionicons, MaterialIcons} from "@expo/vector-icons";
+
 const App = () => {
 
     const [bottomSheetData, setBottomSheetData] = useState(null)
     const snapPoint = useMemo(() => ["25%", "50%", "70%"], [])
     const mapRef = createRef()
     const popupRef = createRef()
+    const popupRef1 = createRef()
     const [userLocation, setUserLocation] = useState(null);
-
     const [idList, setIdList] = useState([])
 
     const getRandomId = () => {
         let randomNum = Math.round(Math.random() * (1000))
-        while(idList.includes(randomNum)){
+        while (idList.includes(randomNum)) {
             randomNum = Math.round(Math.random() * (1000))
         }
         idList.push(randomNum)
@@ -27,26 +28,94 @@ const App = () => {
     const handleMapPress = (e) => {
         const coords = e.nativeEvent.coordinate
 
-        if (brush){
-            setBorderMarkers((prevBor) => {
-                const newElement = {
-                    id: getRandomId(),
-                    coords: coords
-                };
-
-                return [...prevBor, newElement];
-            });
-        }else {
+        if (brush) {
+            addNewBorderMarker({
+                id: getRandomId(),
+                coords: coords,
+                type: "border"
+            })
+        } else {
             setUnassignedMarkers((prevUnassignedMarkers) => {
                 const newElement = {
                     id: getRandomId(),
-                    coords: coords
+                    coords: coords,
+                    type: "unassigned"
                 };
                 return [...prevUnassignedMarkers, newElement];
             });
         }
 
     }
+
+    function getDistance(coord1, coord2) {
+        const {latitude: lat1, longitude: lon1} = coord1;
+        const {latitude: lat2, longitude: lon2} = coord2;
+        const R = 6371;
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+
+        return distance;
+    }
+
+    const handleReset = () => {
+        if (unassignedMarkers.length !== 0 || borderMarkers.length !== 0 || lootboxMarkers.length !== 0 || mapCenter != null || bottomSheetData != null) {
+            setUnassignedMarkers([])
+            setBorderMarkers([])
+            setLootboxMarkers([])
+            setMapCenter(null)
+            setBottomSheetData(null)
+        }
+    }
+
+    function addNewBorderMarker(newMarker) {
+        try {
+            if (borderMarkers.length < 4) {
+                setBorderMarkers(prevZoneBorders => [...prevZoneBorders, newMarker]);
+            } else {
+                let bestAverageDistance = Infinity;
+                let bestIndex = -1;
+
+                for (let i = 0; i < borderMarkers.length; i++) {
+                    const nextIndex = (i + 1) % borderMarkers.length;
+                    const currentPoint = borderMarkers[i];
+                    const nextPoint = borderMarkers[nextIndex];
+
+                    if (!currentPoint || !nextPoint) {
+                        continue;
+                    }
+
+                    const avgDistance = (getDistance(currentPoint.coords, newMarker.coords)
+                        + getDistance(nextPoint.coords, newMarker.coords)) / 2;
+
+                    if (avgDistance < bestAverageDistance) {
+                        bestAverageDistance = avgDistance;
+                        bestIndex = i;
+                    }
+                }
+
+                setBorderMarkers(prevState => {
+                    const updatedCoords = [...prevState];
+                    if (bestIndex !== -1) {
+                        updatedCoords.splice(bestIndex + 1, 0, newMarker);
+                    } else {
+                        updatedCoords.push(newMarker);
+                    }
+                    return updatedCoords;
+                });
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
 
     const handlePopup = (obj) => {
         setBottomSheetData(obj)
@@ -56,6 +125,42 @@ const App = () => {
     const [unassignedMarkers, setUnassignedMarkers] = useState([])
     const [borderMarkers, setBorderMarkers] = useState([])
     const [lootboxMarkers, setLootboxMarkers] = useState([])
+    const [mapCenter, setMapCenter] = useState(null)
+
+    function findMiddlePoint(coordinates) {
+        if (!Array.isArray(coordinates) || coordinates.length < 3) {
+            return null;
+        }
+
+        let sumLat = 0;
+        let sumLng = 0;
+
+        for (const coord of coordinates) {
+            sumLat += coord.coords.latitude;
+            sumLng += coord.coords.longitude;
+
+        }
+
+        const averageLat = sumLat / coordinates.length;
+        const averageLng = sumLng / coordinates.length;
+
+
+        const middlePoint = {
+            id: getRandomId(),
+            coords: {
+                latitude: averageLat,
+                longitude: averageLng
+            },
+        };
+
+        return middlePoint;
+    }
+
+    useEffect(() => {
+        if (borderMarkers.length >= 3) {
+            setMapCenter(findMiddlePoint(borderMarkers))
+        }
+    }, [borderMarkers]);
 
     const requestLocationPermission = async () => {
         const {status} = await requestForegroundPermissionsAsync();
@@ -72,7 +177,7 @@ const App = () => {
         requestLocationPermission();
     }, []);
 
-    const animateToUserLoc = (delta) =>{
+    const animateToUserLoc = (delta) => {
         mapRef.current.animateToRegion({
             longitude: userLocation.longitude,
             latitude: userLocation.latitude,
@@ -117,14 +222,15 @@ const App = () => {
         setBrush(!brush)
     }
 
+    useEffect(() => {
+        popupRef1.current?.present();
+    }, []);
     const defaultBottomSheet = () => {
         return (
             <View className={"flex-1 flex-col items-center"}>
 
                 <Text className={"text-4xl font-bold"}>Map creator</Text>
                 <BottomSheetTextInput
-                    value={gameName}
-                    onChangeText={setGameName}
                     placeholder="Type something here..."
                 />
 
@@ -134,33 +240,60 @@ const App = () => {
     const removeMarkerButton = () => {
         setUnassignedMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
         setBorderMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
+        setLootboxMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
         setBottomSheetData(null)
 
-        for (let i = 0; i < idList.length; i++){
-            if (idList[i] == bottomSheetData.id){
+        for (let i = 0; i < idList.length; i++) {
+            if (idList[i] == bottomSheetData.id) {
                 idList.splice(i, 1);
                 break;
             }
         }
     };
 
+    const setAsLootbox = () => {
+        setUnassignedMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
+        setLootboxMarkers((prevState) => {
+            const newElement = {
+                id: bottomSheetData.id,
+                coords: bottomSheetData.coords,
+                items: []
+            };
+            return [...prevState, newElement];
+        });
+    }
+
 
     const markerBottomSheet = () => {
         return (
             <View className={"flex-col p-3 items-center"}>
-                <Text className={"text-2xl text-center"}>Marker
-                    id: {bottomSheetData ? bottomSheetData.id : defaultBottomSheet()}</Text>
-                <Text
-                    className={"text-lg text-center"}>Latitude: {bottomSheetData ? bottomSheetData.coords.latitude : defaultBottomSheet()}</Text>
-                <Text
-                    className={"text-lg text-center"}>Longitude: {bottomSheetData ? bottomSheetData.coords.longitude : defaultBottomSheet()}</Text>
+                <Text className={"text-2xl text-center"}>
+                    Marker id: {bottomSheetData ? bottomSheetData.id : defaultBottomSheet()}</Text>
+                <Text className={"text-lg text-center"}>
+                    Latitude: {bottomSheetData ? bottomSheetData.coords.latitude : defaultBottomSheet()}</Text>
+                <Text className={"text-lg text-center"}>
+                    Longitude: {bottomSheetData ? bottomSheetData.coords.longitude : defaultBottomSheet()}</Text>
                 <View className={"flex-row w-[60%] items-center justify-evenly mt-5"}>
-                    <TouchableOpacity className={"bg-black rounded-full p-3"} activeOpacity={1} onPress={removeMarkerButton}>
-                        <Feather name="trash-2" size={24} color="red"/>
+                    <TouchableOpacity
+                        className={"bg-black rounded-full p-3"}
+                        activeOpacity={1}
+                        onPress={setAsLootbox}>
+                        <Entypo name="box" size={26} color="white"/>
                     </TouchableOpacity>
-                    <TouchableOpacity className={"bg-black rounded-full p-3"} activeOpacity={1}>
-                        <FontAwesome5 name="compress-arrows-alt" size={24} color="white"/>
+
+                    <TouchableOpacity
+                        className={"bg-black rounded-full p-3"}
+                        activeOpacity={1}
+                        onPress={removeMarkerButton}>
+                        <Feather name="trash-2" size={26} color="red"/>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className={"bg-black rounded-full p-3"}
+                        activeOpacity={1}>
+                        <FontAwesome5 name="compress-arrows-alt" size={26} color="white"/>
+                    </TouchableOpacity>
+
                 </View>
             </View>
         )
@@ -181,6 +314,19 @@ const App = () => {
                     {bottomSheetData ? markerBottomSheet() : defaultBottomSheet()}
 
                 </BottomSheetModal>
+
+                <BottomSheetModal
+                    ref={popupRef1}
+                    index={1}
+                    snapPoints={snapPoint}
+                    enablePanDownToClose={true}
+
+                >
+
+                    <Text>Kodwajid</Text>
+
+                </BottomSheetModal>
+
                 <MapView
                     ref={mapRef}
                     initialRegion={userLocation}
@@ -190,6 +336,9 @@ const App = () => {
                     onMapReady={onMapReady}
                     showsMyLocationButton={false}
                     showsCompass={false}
+                    showsPointsOfInterest={false}
+                    customMapStyle={customMapStyle}
+                    userInterfaceStyle={"dark"}
                 >
 
                     {
@@ -210,23 +359,49 @@ const App = () => {
                                 key={curr.id}
                                 coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
                                 onPress={() => handlePopup(curr)}
+                                anchor={{x: 0.5, y: 0.5}}
 
 
                             >
-                                <FontAwesome5 name="question-circle" size={26} color="black" />
+                                <FontAwesome5 name="question-circle" size={26} color="black"/>
+
+
                             </Marker>
                         })
                     }
 
                     {
-                        borderMarkers.map((curr) =>{
+                        borderMarkers.map((curr) => {
                             return <Marker
-                            key={curr.id}
-                            coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
-                            onPress={() => handlePopup(curr)}
-                            anchor={{ x: 0.5, y: 0.5 }}
+                                key={curr.id}
+                                coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
+                                onPress={() => handlePopup(curr)}
+                                anchor={{x: 0.5, y: 0.5}}
                             >
-                                <FontAwesome name="dot-circle-o" size={20} color="red" />
+                                <FontAwesome name="dot-circle-o" size={20} color="red"/>
+                            </Marker>
+                        })
+                    }
+
+                    {
+                        mapCenter ? <Marker
+                            coordinate={mapCenter.coords}
+                            onPress={() => handlePopup(mapCenter)}
+                        >
+                            <FontAwesome5 name="compress-arrows-alt" size={24} color="black"/>
+                        </Marker> : null
+                    }
+
+
+                    {
+                        lootboxMarkers.map((curr) => {
+                            return <Marker
+                                key={curr.id}
+                                coordinate={curr.coords}
+                                onPress={() => handlePopup(curr)}
+                                anchor={{x: 0.5, y: 0.5}}>
+
+                                <Entypo name="box" size={24} color="black"/>
                             </Marker>
                         })
                     }
@@ -239,7 +414,7 @@ const App = () => {
                 className={"absolute top-16 left-4 bg-white rounded-full p-3"}
                 activeOpacity={1}
             >
-                <Entypo name="menu" size={30} color="black" />
+                <Entypo name="menu" size={30} color="black"/>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -247,7 +422,7 @@ const App = () => {
                 activeOpacity={1}
                 onPress={() => animateToUserLoc(0.009)}
             >
-            <MaterialIcons name="my-location" size={30} color="black" />
+                <MaterialIcons name="my-location" size={30} color="black"/>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -258,8 +433,37 @@ const App = () => {
                 <FontAwesome name="paint-brush" size={30} color={brush ? "blue" : "black"}/>
             </TouchableOpacity>
 
+            <TouchableOpacity
+                className={"absolute top-48 right-4 bg-red-500 rounded-full p-3"}
+                onPress={handleReset}
+                activeOpacity={1}
+            >
+                <Ionicons name="reload" size={30} color="white"/>
+            </TouchableOpacity>
+
 
         </GestureHandlerRootView>
     );
 };
+
+const customMapStyle = [
+    {
+        featureType: 'poi',
+        elementType: 'labels',
+        stylers: [
+            {
+                visibility: 'off',
+            },
+        ],
+    },
+    {
+        featureType: 'transit.station',
+        elementType: 'labels',
+        stylers: [
+            {
+                visibility: 'off',
+            },
+        ],
+    },
+];
 export default App;
