@@ -1,10 +1,10 @@
 import React, {createRef, useEffect, useMemo, useState} from 'react';
 import {Text, TouchableOpacity, View} from "react-native";
 import MapView, {Marker, Polygon,} from 'react-native-maps';
-import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput} from '@gorhom/bottom-sheet';
+import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput, BottomSheetView} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {getCurrentPositionAsync, requestForegroundPermissionsAsync} from "expo-location";
-import {Entypo, Feather, FontAwesome, FontAwesome5, Ionicons, MaterialIcons} from "@expo/vector-icons";
+import {AntDesign, Entypo, Feather, FontAwesome, FontAwesome5, Ionicons, MaterialIcons} from "@expo/vector-icons";
 
 const App = () => {
 
@@ -15,6 +15,7 @@ const App = () => {
     const popupRef1 = createRef()
     const [userLocation, setUserLocation] = useState(null);
     const [idList, setIdList] = useState([])
+    const [newLootboxItemValue, setNewLootboxItemValue] = useState(null)
 
     const getRandomId = () => {
         let randomNum = Math.round(Math.random() * (1000))
@@ -178,12 +179,16 @@ const App = () => {
     }, []);
 
     const animateToUserLoc = (delta) => {
-        mapRef.current.animateToRegion({
-            longitude: userLocation.longitude,
-            latitude: userLocation.latitude,
-            latitudeDelta: delta,
-            longitudeDelta: delta,
-        }, 1000)
+        try{
+            mapRef.current.animateToRegion({
+                longitude: userLocation.longitude,
+                latitude: userLocation.latitude,
+                latitudeDelta: delta,
+                longitudeDelta: delta,
+            }, 1000)
+        }catch (e){
+            console.error(e)
+        }
     }
     const [hasAnimatedToUserLoc, setHasAnimatedToUserLoc] = useState(false);
     useEffect(() => {
@@ -209,12 +214,13 @@ const App = () => {
     const closeBottomSheetModal = () => {
         popupRef.current?.close();
     };
-
+/*
     useEffect(() => {
         openBottomSheetModal()
     }, [bottomSheetData]);
 
-    const [gameName, setGameName] = useState('');
+ */
+
 
     const [brush, setBrush] = useState(false)
 
@@ -222,9 +228,11 @@ const App = () => {
         setBrush(!brush)
     }
 
+    /*
     useEffect(() => {
         popupRef1.current?.present();
     }, []);
+     */
     const defaultBottomSheet = () => {
         return (
             <View className={"flex-1 flex-col items-center"}>
@@ -257,23 +265,69 @@ const App = () => {
             const newElement = {
                 id: bottomSheetData.id,
                 coords: bottomSheetData.coords,
+                type: "lootbox",
                 items: []
             };
+            setBottomSheetData(newElement)
             return [...prevState, newElement];
         });
     }
 
+    const capitalize = (input) => {
+        console.log(input[0])
+        input[0] = input[0].toUpperCase()
+        return input;
+    }
+
+
+    const addToLootbox = (itemName) =>{
+        let currentLootbox = bottomSheetData
+
+        let itemsArray = currentLootbox.items
+        itemsArray.push({
+            name: itemName
+        })
+    }
+
+    const addItemComponent = () =>{
+        return <View className={"flex-1 flex-row p-3"}>
+            <BottomSheetTextInput value={newLootboxItemValue} placeholder={"Item name"}
+            className={"bg-black p-3 text-xl"}></BottomSheetTextInput>
+            <TouchableOpacity><Entypo name="check" size={26} color="black" /></TouchableOpacity>
+        </View>
+    }
 
     const markerBottomSheet = () => {
         return (
             <View className={"flex-col p-3 items-center"}>
                 <Text className={"text-2xl text-center"}>
-                    Marker id: {bottomSheetData ? bottomSheetData.id : defaultBottomSheet()}</Text>
+                    {capitalize(bottomSheetData.type)}</Text>
                 <Text className={"text-lg text-center"}>
                     Latitude: {bottomSheetData ? bottomSheetData.coords.latitude : defaultBottomSheet()}</Text>
                 <Text className={"text-lg text-center"}>
                     Longitude: {bottomSheetData ? bottomSheetData.coords.longitude : defaultBottomSheet()}</Text>
+
+                {bottomSheetData.type == "lootbox" ? <View>
+                    <Text className={"text-3xl mt-4"}>Items inside this lootbox</Text>
+
+                    {bottomSheetData.items.length != 0 ?<View>
+                        {bottomSheetData.items.map((curr) => {
+                            return <Text>{curr}</Text>
+                        })}
+                    </View> : <Text className={"text-red-700 text-center text-xl"}>Lootbox is empty</Text>
+                }
+
+                    <View className={"flex-1 flex-row p-3 max-h-12 bg-gray-400 items-center justify-start"}>
+                        <BottomSheetTextInput value={newLootboxItemValue} placeholder={"Item name"}
+                                              className={"bg-black p-3 text-xl w-60"}></BottomSheetTextInput>
+                        <TouchableOpacity className={""}><Entypo name="check" size={26} color="black" /></TouchableOpacity>
+                    </View>
+
+
+                </View> : null
+                }
                 <View className={"flex-row w-[60%] items-center justify-evenly mt-5"}>
+
                     <TouchableOpacity
                         className={"bg-black rounded-full p-3"}
                         activeOpacity={1}
@@ -294,7 +348,19 @@ const App = () => {
                         <FontAwesome5 name="compress-arrows-alt" size={26} color="white"/>
                     </TouchableOpacity>
 
+                    {bottomSheetData.type == "lootbox" ?
+                        <TouchableOpacity
+                        className={"bg-black rounded-full p-3  items-center "}
+                        activeOpacity={1}
+                        onPress={addToLootbox}>
+                        <AntDesign name="plus" size={26} color="lime" />
+                    </TouchableOpacity> : null
+                    }
+
+
+
                 </View>
+
             </View>
         )
     }
