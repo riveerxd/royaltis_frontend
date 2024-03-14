@@ -1,15 +1,16 @@
-import React, {createRef, useEffect, useMemo, useState} from 'react';
+ import React, {createRef, useEffect, useMemo, useState} from 'react';
 import {Text, TouchableOpacity, View} from "react-native";
 import MapView, {Marker, Polygon,} from 'react-native-maps';
-import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput, BottomSheetView} from '@gorhom/bottom-sheet';
+import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {getCurrentPositionAsync, requestForegroundPermissionsAsync} from "expo-location";
 import {AntDesign, Entypo, Feather, FontAwesome, FontAwesome5, Ionicons, MaterialIcons} from "@expo/vector-icons";
+import Constants from "expo-constants/src/Constants";
 
 const App = () => {
 
     const [bottomSheetData, setBottomSheetData] = useState(null)
-    const snapPoint = useMemo(() => ["25%", "50%", "70%"], [])
+    const snapPoint = useMemo(() => ["30%", "55%", "75%"], [])
     const mapRef = createRef()
     const popupRef = createRef()
     const popupRef1 = createRef()
@@ -139,12 +140,10 @@ const App = () => {
         for (const coord of coordinates) {
             sumLat += coord.coords.latitude;
             sumLng += coord.coords.longitude;
-
         }
 
         const averageLat = sumLat / coordinates.length;
         const averageLng = sumLng / coordinates.length;
-
 
         const middlePoint = {
             id: getRandomId(),
@@ -153,7 +152,6 @@ const App = () => {
                 longitude: averageLng
             },
         };
-
         return middlePoint;
     }
 
@@ -174,6 +172,7 @@ const App = () => {
         setUserLocation(location.coords);
         console.log(userLocation)
     };
+
     useEffect(() => {
         requestLocationPermission();
     }, []);
@@ -199,6 +198,7 @@ const App = () => {
     }, [userLocation, hasAnimatedToUserLoc]);
 
     const onMapReady = () => {
+        console.log("map ready")
     }
     const handleClose = () => {
         if (popupRef.current) {
@@ -273,20 +273,15 @@ const App = () => {
         });
     }
 
-    const capitalize = (input) => {
-        console.log(input[0])
-        input[0] = input[0].toUpperCase()
-        return input;
-    }
 
-
-    const addToLootbox = (itemName) =>{
+    const addToLootbox = () =>{
         let currentLootbox = bottomSheetData
 
         let itemsArray = currentLootbox.items
         itemsArray.push({
-            name: itemName
+            name: newLootboxItemValue
         })
+        setNewLootboxItemValue(null)
     }
 
     const addItemComponent = () =>{
@@ -300,27 +295,38 @@ const App = () => {
     const markerBottomSheet = () => {
         return (
             <View className={"flex-col p-3 items-center"}>
-                <Text className={"text-2xl text-center"}>
-                    {capitalize(bottomSheetData.type)}</Text>
+                <Text className={"text-4xl font-black text-center capitalize mb-1"}>
+                    {bottomSheetData.type+" "+bottomSheetData.id}</Text>
+                <Entypo name="location" size={24} color="black" />
                 <Text className={"text-lg text-center"}>
                     Latitude: {bottomSheetData ? bottomSheetData.coords.latitude : defaultBottomSheet()}</Text>
                 <Text className={"text-lg text-center"}>
                     Longitude: {bottomSheetData ? bottomSheetData.coords.longitude : defaultBottomSheet()}</Text>
 
-                {bottomSheetData.type == "lootbox" ? <View>
-                    <Text className={"text-3xl mt-4"}>Items inside this lootbox</Text>
+                {bottomSheetData.type == "lootbox" ? <View className={"min-w-[80%]"}>
+                    <Text className={"text-3xl mt-4 text-center underline"}>Containments</Text>
 
-                    {bottomSheetData.items.length != 0 ?<View>
+                    {bottomSheetData.items.length != 0 ?<View className={"justify-center items-center"}>
                         {bottomSheetData.items.map((curr) => {
-                            return <Text>{curr}</Text>
+                            return <Text key={"item-"+curr.name}>{curr.name}</Text>
                         })}
                     </View> : <Text className={"text-red-700 text-center text-xl"}>Lootbox is empty</Text>
                 }
 
-                    <View className={"flex-1 flex-row p-3 max-h-12 bg-gray-400 items-center justify-start"}>
-                        <BottomSheetTextInput value={newLootboxItemValue} placeholder={"Item name"}
-                                              className={"bg-black p-3 text-xl w-60"}></BottomSheetTextInput>
-                        <TouchableOpacity className={""}><Entypo name="check" size={26} color="black" /></TouchableOpacity>
+                    <View className="flex-row items-center bg-gray-300 p-3 relative rounded-lg ">
+                        <BottomSheetTextInput
+                            value={newLootboxItemValue}
+                            onChangeText={setNewLootboxItemValue}
+                            placeholder="Item name"
+                            maxLength={20}
+                            className="flex-1 bg-white px-4 py-2 text-lg rounded w-max"
+                        />
+                        <TouchableOpacity
+                            className={"bg-black rounded-full p-3  items-center absolute right-2"}
+                            activeOpacity={1}
+                            onPress={addToLootbox}>
+                            <AntDesign name="plus" size={26} color="lime" />
+                        </TouchableOpacity>
                     </View>
 
 
@@ -332,30 +338,21 @@ const App = () => {
                         className={"bg-black rounded-full p-3"}
                         activeOpacity={1}
                         onPress={setAsLootbox}>
-                        <Entypo name="box" size={26} color="white"/>
+                        <Entypo name="box" size={30} color="white"/>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className={"bg-black rounded-full p-3"}
                         activeOpacity={1}
                         onPress={removeMarkerButton}>
-                        <Feather name="trash-2" size={26} color="red"/>
+                        <Feather name="trash-2" size={30} color="red"/>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className={"bg-black rounded-full p-3"}
                         activeOpacity={1}>
-                        <FontAwesome5 name="compress-arrows-alt" size={26} color="white"/>
+                        <FontAwesome5 name="compress-arrows-alt" size={30} color="white"/>
                     </TouchableOpacity>
-
-                    {bottomSheetData.type == "lootbox" ?
-                        <TouchableOpacity
-                        className={"bg-black rounded-full p-3  items-center "}
-                        activeOpacity={1}
-                        onPress={addToLootbox}>
-                        <AntDesign name="plus" size={26} color="lime" />
-                    </TouchableOpacity> : null
-                    }
 
 
 
@@ -371,10 +368,12 @@ const App = () => {
             <BottomSheetModalProvider>
 
                 <BottomSheetModal
+                    style={{marginTop: Constants.statusBarHeight}}
                     ref={popupRef}
                     index={0}
                     snapPoints={snapPoint}
                     enablePanDownToClose={false}
+                    className={"absolute z-20"}
                 >
 
                     {bottomSheetData ? markerBottomSheet() : defaultBottomSheet()}
@@ -397,7 +396,7 @@ const App = () => {
                     ref={mapRef}
                     initialRegion={userLocation}
                     showsUserLocation={true}
-                    className={"flex-1 w-full h-full justify-center items-center"}
+                    className={"flex-1 w-full h-full justify-center items-center relative z-0"}
                     onPress={handleMapPress}
                     onMapReady={onMapReady}
                     showsMyLocationButton={false}
@@ -474,38 +473,40 @@ const App = () => {
 
 
                 </MapView>
+
+                <TouchableOpacity
+                    className={"absolute top-16 left-4 bg-white rounded-full p-3 z-10"}
+                    activeOpacity={1}
+                >
+                    <Entypo name="menu" size={30} color="black"/>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    className={"absolute top-16 right-4 bg-white rounded-full p-3 z-10"}
+                    activeOpacity={1}
+                    onPress={() => animateToUserLoc(0.009)}
+                >
+                    <MaterialIcons name="my-location" size={30} color="black"/>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    className={"absolute top-32 right-4 bg-white rounded-full p-3 z-10"}
+                    onPress={handleBrushPress}
+                    activeOpacity={1}
+                >
+                    <FontAwesome name="paint-brush" size={30} color={brush ? "blue" : "black"}/>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    className={"absolute top-48 right-4 bg-red-500 rounded-full p-3 z-10"}
+                    onPress={handleReset}
+                    activeOpacity={1}
+                >
+                    <Ionicons name="reload" size={30} color="white"/>
+                </TouchableOpacity>
             </BottomSheetModalProvider>
 
-            <TouchableOpacity
-                className={"absolute top-16 left-4 bg-white rounded-full p-3"}
-                activeOpacity={1}
-            >
-                <Entypo name="menu" size={30} color="black"/>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-                className={"absolute top-16 right-4 bg-white rounded-full p-3"}
-                activeOpacity={1}
-                onPress={() => animateToUserLoc(0.009)}
-            >
-                <MaterialIcons name="my-location" size={30} color="black"/>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                className={"absolute top-32 right-4 bg-white rounded-full p-3"}
-                onPress={handleBrushPress}
-                activeOpacity={1}
-            >
-                <FontAwesome name="paint-brush" size={30} color={brush ? "blue" : "black"}/>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                className={"absolute top-48 right-4 bg-red-500 rounded-full p-3"}
-                onPress={handleReset}
-                activeOpacity={1}
-            >
-                <Ionicons name="reload" size={30} color="white"/>
-            </TouchableOpacity>
 
 
         </GestureHandlerRootView>
