@@ -25,7 +25,6 @@
     }
 
     export const getRandomId = (idList) => {
-    console.log(idList)
     try{
         let randomNum = Math.round(Math.random() * (1000))
         while (idList.includes(randomNum)) {
