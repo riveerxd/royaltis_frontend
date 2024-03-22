@@ -1,14 +1,16 @@
 import React, {createRef, useEffect, useMemo, useState} from 'react';
-import {Text, TouchableOpacity, View} from "react-native";
+import {StatusBar, Text, TouchableOpacity, View} from "react-native";
 import MapView, {Marker, Polygon,} from 'react-native-maps';
 import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {getCurrentPositionAsync, requestForegroundPermissionsAsync} from "expo-location";
 import {AntDesign, Entypo, Feather, FontAwesome, FontAwesome5, Ionicons, MaterialIcons} from "@expo/vector-icons";
 import Constants from "expo-constants/src/Constants";
-import Utils, {findMiddlePoint, getDistance, getRandomId} from "./src/utilities/Utils";
+import Utils, {findMiddlePoint, getDistance, getRandomId} from "../src/utilities/Utils";
+import {MyDrawer} from "./index";
+import { useNavigation } from '@react-navigation/native';
 
-const App = () => {
+export default function Editor(){
 
     const [bottomSheetData, setBottomSheetData] = useState(null)
     const snapPoint = useMemo(() => ["30%", "55%", "75%"], [])
@@ -212,18 +214,6 @@ const App = () => {
         popupRef1.current?.present();
     }, []);
      */
-    const defaultBottomSheet = () => {
-        return (
-            <View className={"flex-1 flex-col items-center"}>
-
-                <Text className={"text-4xl font-bold"}>Map creator</Text>
-                <BottomSheetTextInput
-                    placeholder="Type something here..."
-                />
-
-            </View>
-        )
-    }
     const removeMarkerButton = () => {
         setUnassignedMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
         setBorderMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
@@ -423,16 +413,16 @@ const App = () => {
                     }
 
 
-                    <View className="flex-row items-center justify-between bg-gray-300 p-3 rounded-lg mt-5">
+                    <View className="flex-row items-center justify-between bg-gray-300 py-2 px-3 rounded-lg mt-5 shadow-2xl">
                         <BottomSheetTextInput
                             value={newLootboxItemValue}
                             onChangeText={setNewLootboxItemValue}
                             placeholder="Item name"
                             maxLength={20}
-                            className="bg-white  text-lg rounded mr-auto flex-grow "
+                            className="bg-white p-2 text-lg rounded mr-auto flex-grow"
                         />
                         <TouchableOpacity
-                            className="bg-black rounded-full p-3"
+                            className="bg-black rounded-full p-3 shadow-2xl"
                             activeOpacity={1}
                             onPress={addToLootbox}>
                             <AntDesign name="plus" size={26} color="lime"/>
@@ -471,10 +461,15 @@ const App = () => {
         )
     }
 
+    useEffect(() => {
+        if(bottomSheetData == null){
+            popupRef.current?.close()
+        }
+    }, [bottomSheetData]);
     return (
-        <GestureHandlerRootView className={"flex-1"}>
-
+        <GestureHandlerRootView style={{flex:1}} >
             <BottomSheetModalProvider>
+                <StatusBar barStyle={"dark-content"}/>
 
                 <BottomSheetModal
                     style={{marginTop: Constants.statusBarHeight}}
@@ -483,29 +478,20 @@ const App = () => {
                     snapPoints={snapPoint}
                     enablePanDownToClose={false}
                     className={"absolute z-20"}
-                >
-
-                    {bottomSheetData ? markerBottomSheet() : defaultBottomSheet()}
-
-                </BottomSheetModal>
-
-                <BottomSheetModal
-                    ref={popupRef1}
-                    index={1}
-                    snapPoints={snapPoint}
-                    enablePanDownToClose={true}
 
                 >
 
-                    <Text>Kodwajid</Text>
+                    {bottomSheetData ?markerBottomSheet() : null}
 
                 </BottomSheetModal>
+
+
 
                 <MapView
                     ref={mapRef}
                     initialRegion={userLocation}
                     showsUserLocation={true}
-                    className={"flex-1 w-full h-full justify-center items-center relative z-0"}
+                    style={{flex:1}}
                     onPress={handleMapPress}
                     onMapReady={onMapReady}
                     showsMyLocationButton={false}
@@ -583,15 +569,9 @@ const App = () => {
 
                 </MapView>
 
-                <TouchableOpacity
-                    className={"absolute top-16 left-4 bg-white rounded-full p-3 z-10"}
-                    activeOpacity={1}
-                >
-                    <Entypo name="menu" size={30} color="black"/>
-                </TouchableOpacity>
 
                 <TouchableOpacity
-                    className={"absolute top-16 right-4 bg-white rounded-full p-3 z-10"}
+                    className={"absolute top-4 right-4 bg-white rounded-full p-3 z-10"}
                     activeOpacity={1}
                     onPress={() => animateToUserLoc(0.009)}
                 >
@@ -599,7 +579,7 @@ const App = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    className={"absolute top-32 right-4 bg-white rounded-full p-3 z-10"}
+                    className={"absolute top-20 right-4 bg-white rounded-full p-3 z-10"}
                     onPress={handleBrushPress}
                     activeOpacity={1}
                 >
@@ -607,7 +587,7 @@ const App = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    className={"absolute top-48 right-4 bg-red-500 rounded-full p-3 z-10"}
+                    className={"absolute top-36 right-4 bg-red-500 rounded-full p-3 z-10"}
                     onPress={handleReset}
                     activeOpacity={1}
                 >
@@ -640,4 +620,3 @@ const customMapStyle = [
         ],
     },
 ];
-export default App;
