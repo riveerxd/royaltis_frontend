@@ -4,11 +4,20 @@ import MapView, {Marker, Polygon,} from 'react-native-maps';
 import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {getCurrentPositionAsync, requestForegroundPermissionsAsync} from "expo-location";
-import {AntDesign, Entypo, Feather, FontAwesome, FontAwesome5, Ionicons, MaterialIcons} from "@expo/vector-icons";
+import {
+    AntDesign,
+    Entypo,
+    Feather,
+    FontAwesome,
+    FontAwesome5,
+    Ionicons,
+    MaterialCommunityIcons,
+    MaterialIcons
+} from "@expo/vector-icons";
 import Constants from "expo-constants/src/Constants";
 import {findMiddlePoint, getDistance, getRandomId} from "../src/utilities/Utils";
 
-export default function Editor(){
+export default function Editor() {
 
     const [bottomSheetData, setBottomSheetData] = useState(null)
     const snapPoint = useMemo(() => ["30%", "50%", "75"], [])
@@ -18,6 +27,7 @@ export default function Editor(){
     const [userLocation, setUserLocation] = useState(null);
     const [idList, setIdList] = useState([])
     const [newLootboxItemValue, setNewLootboxItemValue] = useState(null)
+    const [borderEngine, setBorderEngine] = useState(false)
 
 
     const handleMapPress = (e) => {
@@ -44,11 +54,11 @@ export default function Editor(){
 
     const [keyboardShown, setKeyboardShown] = useState(false)
     useEffect(() => {
-        const keyboardShowSubscription = Keyboard.addListener("keyboardDidShow", () =>{
+        const keyboardShowSubscription = Keyboard.addListener("keyboardDidShow", () => {
             setKeyboardShown(true)
             console.log(lootboxMarkers)
         })
-        const keyboardHideSubscription = Keyboard.addListener("keyboardDidHide", () =>{
+        const keyboardHideSubscription = Keyboard.addListener("keyboardDidHide", () => {
             setKeyboardShown(false)
         })
     }, []);
@@ -69,6 +79,9 @@ export default function Editor(){
             if (borderMarkers.length < 4) {
                 setBorderMarkers(prevZoneBorders => [...prevZoneBorders, newMarker]);
             } else {
+                if (!borderEngine){
+                    return setBorderMarkers(prevZoneBorders => [...prevZoneBorders, newMarker]);
+                }
                 let bestAverageDistance = Infinity;
                 let bestIndex = -1;
 
@@ -112,11 +125,10 @@ export default function Editor(){
     }
 
     const [unassignedMarkers, setUnassignedMarkers] = useState([])
-    const [borderMarkers, setBorderMarkers] = useState([{
-        "coords": {
-            "latitude": 50.074474871857205,
-            "longitude": 14.425810240209103
-        }, "id": 466, "type": "border"
+    const [borderMarkers, setBorderMarkers] = useState([
+    {
+        "coords": {"latitude": 50.074474871857205, "longitude": 14.425810240209103},
+        "id": 466, "type": "border"
     }, {
         "coords": {"latitude": 50.073860106329974, "longitude": 14.426557570695879},
         "id": 485,
@@ -180,6 +192,11 @@ export default function Editor(){
             console.error(e)
         }
     }
+
+    const toggleBorderEngine = () => {
+        setBorderEngine(!borderEngine)
+    }
+
     const [hasAnimatedToUserLoc, setHasAnimatedToUserLoc] = useState(false);
     useEffect(() => {
         if (userLocation && !hasAnimatedToUserLoc) {
@@ -324,10 +341,10 @@ export default function Editor(){
             const Δφ = (marker.coords.latitude - center.coords.latitude) * Math.PI / 180;
             const Δλ = (marker.coords.longitude - center.coords.longitude) * Math.PI / 180;
 
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
                 Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
             const distance = R * c; // in meters
 
@@ -354,6 +371,7 @@ export default function Editor(){
 
         return movedMarkers;
     }
+
     function moveMarkersTowardsCenter(center, markers, totalTime) {
         // Calculate the number of "virtual" frames based on total time (no actual animation)
         const fps = 2; // Adjust FPS as needed
@@ -418,7 +436,8 @@ export default function Editor(){
                     }
 
 
-                    <View className="flex-row items-center justify-between bg-gray-300 py-2 px-3 rounded-lg mt-5 shadow-2xl">
+                    <View
+                        className="flex-row items-center justify-between bg-gray-300 py-2 px-3 rounded-lg mt-5 shadow-2xl">
                         <BottomSheetTextInput
                             value={newLootboxItemValue}
                             onChangeText={setNewLootboxItemValue}
@@ -467,12 +486,12 @@ export default function Editor(){
     }
 
     useEffect(() => {
-        if(bottomSheetData == null){
+        if (bottomSheetData == null) {
             popupRef.current?.close()
         }
     }, [bottomSheetData]);
     return (
-        <GestureHandlerRootView style={{flex:1}} >
+        <GestureHandlerRootView style={{flex: 1}}>
             <BottomSheetModalProvider>
                 <StatusBar barStyle={"dark-content"}/>
 
@@ -486,17 +505,16 @@ export default function Editor(){
 
                 >
 
-                    {bottomSheetData ?markerBottomSheet() : null}
+                    {bottomSheetData ? markerBottomSheet() : null}
 
                 </BottomSheetModal>
-
 
 
                 <MapView
                     ref={mapRef}
                     initialRegion={userLocation}
                     showsUserLocation={true}
-                    style={{flex:1}}
+                    style={{flex: 1}}
                     onPress={handleMapPress}
                     onMapReady={onMapReady}
                     showsMyLocationButton={false}
@@ -525,10 +543,10 @@ export default function Editor(){
                                 coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
                                 onPress={() => handlePopup(curr)}
                                 anchor={{x: 0.5, y: 0.5}}
-
+                                icon={require("../assets/icons/questionmark_optimized.png")}
 
                             >
-                                <FontAwesome5 name="question-circle" size={26} color="black"/>
+
 
 
                             </Marker>
@@ -542,7 +560,7 @@ export default function Editor(){
                                 coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
                                 onPress={() => handlePopup(curr)}
                                 anchor={{x: 0.5, y: 0.5}}
-                                icon={require("../assets/icons/dot(1).png")}
+                                icon={require("../assets/icons/dot_optimized.png")}
 
                             >
                             </Marker>
@@ -580,7 +598,7 @@ export default function Editor(){
 
                 <TouchableOpacity
                     className={"absolute top-4 right-4 bg-white rounded-full p-3 z-10 "}
-                    style={{display:keyboardShown ? "none" : "block"}}
+                    style={{display: keyboardShown ? "none" : "block"}}
                     activeOpacity={1}
                     onPress={() => animateToUserLoc(0.009)}
                 >
@@ -589,7 +607,7 @@ export default function Editor(){
 
                 <TouchableOpacity
                     className={"absolute top-20 right-4 bg-white rounded-full p-3 z-10"}
-                    style={{display:keyboardShown ? "none" : "block"}}
+                    style={{display: keyboardShown ? "none" : "block"}}
                     onPress={handleBrushPress}
                     activeOpacity={1}
                 >
@@ -597,8 +615,16 @@ export default function Editor(){
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    className={"absolute top-36 right-4 bg-red-500 rounded-full p-3 z-10"}
-                    style={{display:keyboardShown ? "none" : "block"}}
+                    className={"absolute top-36 right-4 bg-white rounded-full p-3 z-10"}
+                    style={{display: keyboardShown ? "none" : "block"}}
+                    onPress={toggleBorderEngine}
+                    activeOpacity={1}
+                >
+                    <MaterialCommunityIcons name="transit-connection-horizontal" size={30} color={borderEngine ? "blue" : "black"} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    className={"absolute top-52 right-4 bg-red-500 rounded-full p-3 z-10"}
+                    style={{display: keyboardShown ? "none" : "block"}}
                     onPress={handleReset}
                     activeOpacity={1}
                 >
