@@ -1,47 +1,71 @@
-import {Pressable, StatusBar, Text, TouchableOpacity, View} from "react-native";
-import {Link} from "expo-router";
-import {FontAwesome, FontAwesome5, MaterialIcons} from "@expo/vector-icons";
-import {SafeAreaView} from "react-native-safe-area-context";
+import {StatusBar, Text, TouchableOpacity, View} from "react-native";
+import {CodeField, Cursor, useBlurOnFulfill, useClearByFocusCell} from "react-native-confirmation-code-field";
+import {useState} from "react";
+import {StyleSheet} from "react-native";
 
 export default function Home() {
 
+    const styles = StyleSheet.create({
+        root: {flex: 1, padding: 20},
+        title: {textAlign: 'center', fontSize: 30},
+        codeFieldRoot: {marginTop: 20},
+        cell: {
+            width: 50,
+            height: 50,
+            lineHeight: 48,
+            fontSize: 24,
+            borderWidth: 1.5,
+            marginLeft: 2,
+            marginRight: 2,
+            borderColor: '#00000030',
+            textAlign: 'center',
+            borderRadius: 15
+        },
+        focusCell: {
+            borderColor: '#000',
+        },
+    });
+    const CELL_COUNT = 6;
+    const [value, setValue] = useState('');
+    const ref = useBlurOnFulfill({value, cellCount: CELL_COUNT});
+    const [props, getCellOnLayoutHandler] = useClearByFocusCell({
+        value,
+        setValue,
+    });
+
+
     return (
-        <View className={"flex-1 items-start pt-20 bg-white p-1.5 flex-col justify-start w-full"}>
+        <View className={"flex-1 items-start  bg-white p-1.5 flex-col justify-center w-full h-"}>
             <View className={"flex-col mb-16 items-center w-full"}>
                 <Text className={"text-7xl font-black pt-2"}>Royaltis</Text>
                 <Text className={"text-xl font-bold pl-1"}>welcome</Text>
             </View>
-            <View className={"flex-col justify-center"}>
-                <Text className={"text-2xl font-bold"}>Available games</Text>
-                <View className={"flex-row w-full bg-black/80 shadow-2xl rounded-lg border-2 border-black p-3 mb-2"}>
-                    <View className={"mr-auto"}>
-                        <Text className={"text-2xl text-white"}>GAME NAME</Text>
-                        <Text className={"text-white text-xl"}>56 players</Text>
-                    </View>
-                    <View className={"bg-white border border-black rounded-lg p-3"}>
-                        <TouchableOpacity className={"items-center justify-center flex-row"}>
-                            <Text className={"text-2xl font-bold mr-2"}>JOIN</Text>
-                            <FontAwesome name="user-plus" size={28} color="black"/>
-                        </TouchableOpacity>
-                    </View>
-
-                </View>
-
-                <View className={"flex-row w-full bg-black/70 shadow-2xl rounded-lg p-3"}>
-                    <View className={"mr-auto"}>
-                        <Text className={"text-2xl text-white"}>GAME NAME</Text>
-                        <Text className={"text-white text-xl"}>56 players</Text>
-                    </View>
-                    <View className={"justify-center bg-white/30 rounded-lg p-3"}>
-                        <TouchableOpacity className={"items-center justify-center flex-row"}>
-                            <Text className={"text-white text-xl mr-2"}>JOIN</Text>
-                            <FontAwesome name="user-plus" size={28} color="white"/>
-                        </TouchableOpacity>
-                    </View>
-
-                </View>
+            <View className={"items-center justify-center flex-col w-full"}>
+                <Text style={styles.title}>Game code</Text>
+                <CodeField
+                    ref={ref}
+                    {...props}
+                    // Use `caretHidden={false}` when users can't paste a text value, because context menu doesn't appear
+                    value={value}
+                    onChangeText={setValue}
+                    cellCount={CELL_COUNT}
+                    rootStyle={styles.codeFieldRoot}
+                    keyboardType="number-pad"
+                    testID="my-code-input"
+                    renderCell={({index, symbol, isFocused}) => (
+                        <Text
+                            key={index}
+                            style={[styles.cell, isFocused && styles.focusCell]}
+                            onLayout={getCellOnLayoutHandler(index)}>
+                            {symbol || (isFocused ? <Cursor/> : null)}
+                        </Text>
+                    )}
+                />
+                <TouchableOpacity className={"bg-transparent border-2 border-green-500 py-3 px-12 rounded-xl mt-4"}>
+                    <Text className={"text-5xl pt-1"}>Join</Text>
+                </TouchableOpacity>
             </View>
-            <StatusBar style="auto"/>
+            <StatusBar barStyle={"dark-content"}/>
         </View>
     )
 }

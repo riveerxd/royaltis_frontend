@@ -1,19 +1,17 @@
 import React, {createRef, useEffect, useMemo, useState} from 'react';
-import {StatusBar, Text, TouchableOpacity, View} from "react-native";
+import {Image, Keyboard, StatusBar, Text, TouchableOpacity, View} from "react-native";
 import MapView, {Marker, Polygon,} from 'react-native-maps';
 import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {getCurrentPositionAsync, requestForegroundPermissionsAsync} from "expo-location";
 import {AntDesign, Entypo, Feather, FontAwesome, FontAwesome5, Ionicons, MaterialIcons} from "@expo/vector-icons";
 import Constants from "expo-constants/src/Constants";
-import Utils, {findMiddlePoint, getDistance, getRandomId} from "../src/utilities/Utils";
-import {MyDrawer} from "./index";
-import { useNavigation } from '@react-navigation/native';
+import {findMiddlePoint, getDistance, getRandomId} from "../src/utilities/Utils";
 
 export default function Editor(){
 
     const [bottomSheetData, setBottomSheetData] = useState(null)
-    const snapPoint = useMemo(() => ["30%", "55%", "75%"], [])
+    const snapPoint = useMemo(() => ["30%", "50%", "75"], [])
     const mapRef = createRef()
     const popupRef = createRef()
     const popupRef1 = createRef()
@@ -43,6 +41,17 @@ export default function Editor(){
         }
 
     }
+
+    const [keyboardShown, setKeyboardShown] = useState(false)
+    useEffect(() => {
+        const keyboardShowSubscription = Keyboard.addListener("keyboardDidShow", () =>{
+            setKeyboardShown(true)
+            console.log(lootboxMarkers)
+        })
+        const keyboardHideSubscription = Keyboard.addListener("keyboardDidHide", () =>{
+            setKeyboardShown(false)
+        })
+    }, []);
 
 
     const handleReset = () => {
@@ -387,12 +396,8 @@ export default function Editor(){
     const markerBottomSheet = () => {
         return (
             <View className={"flex-col p-3 items-center"}>
-                <Text className={"text-4xl font-black text-center capitalize mb-1"}>
+                <Text className={"text-4xl font-black text-center capitalize"}>
                     {bottomSheetData.type + " " + bottomSheetData.id}</Text>
-                <Text className={"text-lg text-center"}>
-                    Latitude: {bottomSheetData ? bottomSheetData.coords.latitude : defaultBottomSheet()}</Text>
-                <Text className={"text-lg text-center"}>
-                    Longitude: {bottomSheetData ? bottomSheetData.coords.longitude : defaultBottomSheet()}</Text>
 
                 {bottomSheetData.type == "lootbox" ? <View className={"min-w-[80%]"}>
                     <Text className={"text-3xl mt-4 text-center underline"}>Containments</Text>
@@ -516,7 +521,7 @@ export default function Editor(){
                     {
                         unassignedMarkers.map((curr) => {
                             return <Marker
-                                key={curr.id}
+                                index={curr.id}
                                 coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
                                 onPress={() => handlePopup(curr)}
                                 anchor={{x: 0.5, y: 0.5}}
@@ -533,12 +538,13 @@ export default function Editor(){
                     {
                         borderMarkers.map((curr) => {
                             return <Marker
-                                key={curr.id}
+                                index={curr.id}
                                 coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
                                 onPress={() => handlePopup(curr)}
                                 anchor={{x: 0.5, y: 0.5}}
+                                icon={require("../assets/icons/dot(1).png")}
+
                             >
-                                <FontAwesome name="dot-circle-o" size={20} color="red"/>
                             </Marker>
                         })
                     }
@@ -547,8 +553,8 @@ export default function Editor(){
                         mapCenter ? <Marker
                             coordinate={mapCenter.coords}
                             onPress={() => handlePopup(mapCenter)}
+                            icon={require("../assets/icons/center(1).png")}
                         >
-                            <FontAwesome5 name="compress-arrows-alt" size={24} color="black"/>
                         </Marker> : null
                     }
 
@@ -556,12 +562,14 @@ export default function Editor(){
                     {
                         lootboxMarkers.map((curr) => {
                             return <Marker
-                                key={curr.id}
+                                index={curr.id}
                                 coordinate={curr.coords}
                                 onPress={() => handlePopup(curr)}
-                                anchor={{x: 0.5, y: 0.5}}>
+                                anchor={{x: 0.5, y: 0.5}}
+                                icon={require("../assets/icons/lootbox_optimized(2).png")}
+                            >
 
-                                <Entypo name="box" size={24} color="black"/>
+
                             </Marker>
                         })
                     }
@@ -571,7 +579,8 @@ export default function Editor(){
 
 
                 <TouchableOpacity
-                    className={"absolute top-4 right-4 bg-white rounded-full p-3 z-10"}
+                    className={"absolute top-4 right-4 bg-white rounded-full p-3 z-10 "}
+                    style={{display:keyboardShown ? "none" : "block"}}
                     activeOpacity={1}
                     onPress={() => animateToUserLoc(0.009)}
                 >
@@ -580,6 +589,7 @@ export default function Editor(){
 
                 <TouchableOpacity
                     className={"absolute top-20 right-4 bg-white rounded-full p-3 z-10"}
+                    style={{display:keyboardShown ? "none" : "block"}}
                     onPress={handleBrushPress}
                     activeOpacity={1}
                 >
@@ -588,6 +598,7 @@ export default function Editor(){
 
                 <TouchableOpacity
                     className={"absolute top-36 right-4 bg-red-500 rounded-full p-3 z-10"}
+                    style={{display:keyboardShown ? "none" : "block"}}
                     onPress={handleReset}
                     activeOpacity={1}
                 >
