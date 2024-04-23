@@ -15,6 +15,7 @@
         const averageLng = sumLng / coordinates.length;
 
         const middlePoint = {
+            type: "mapCenter",
             id: getRandomId(idList),
             coords: {
                 latitude: averageLat,
@@ -22,6 +23,35 @@
             },
         };
         return middlePoint;
+    }
+
+    export function getInitialRegion(data) {
+        let minLat = Infinity;
+        let maxLat = -Infinity;
+        let minLong = Infinity;
+        let maxLong = -Infinity;
+
+        for (const point of data) {
+            const { latitude, longitude } = point.coords;
+
+            minLat = Math.min(minLat, latitude);
+            maxLat = Math.max(maxLat, latitude);
+            minLong = Math.min(minLong, longitude);
+            maxLong = Math.max(maxLong, longitude);
+        }
+
+        const centerLat = (minLat + maxLat) / 2;
+        const centerLong = (minLong + maxLong) / 2;
+
+        const latitudeDelta = (maxLat - minLat) * 1.3;
+        const longitudeDelta = (maxLong - minLong) * 1.3;
+
+        return {
+            latitude: centerLat,
+            longitude: centerLong,
+            latitudeDelta,
+            longitudeDelta,
+        };
     }
 
     export const getRandomId = (idList) => {
