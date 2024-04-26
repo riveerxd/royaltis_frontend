@@ -16,7 +16,7 @@
 
         const middlePoint = {
             type: "mapCenter",
-            id: getRandomId(idList),
+            id: idList === null ? null : getRandomId(idList),
             coords: {
                 latitude: averageLat,
                 longitude: averageLng
