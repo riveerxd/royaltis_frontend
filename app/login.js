@@ -1,9 +1,10 @@
-import {Text, TextInput, ToastAndroid, TouchableOpacity, View} from "react-native";
+import {ActivityIndicator, SafeAreaView, Text, TextInput, ToastAndroid, TouchableOpacity, View} from "react-native";
 import {useState} from "react"
 import {Feather} from "@expo/vector-icons";
 import axios from "axios";
 import {useDispatch} from "react-redux";
 import {useNavigation} from "@react-navigation/native";
+import {ipAddress} from "./constants";
 
 export default function Login() {
     const [username, setUsername] = useState("")
@@ -23,7 +24,7 @@ export default function Login() {
                 username: username,
                 password: password
             }
-            const response = await axios.post("http://192.168.0.243:8080/login", payload)
+            const response = await axios.post("http://" + ipAddress + ":8080/login", payload)
 
             if (response.status === 200) {
                 const newToken = response.headers.get("X-Token")
@@ -43,13 +44,13 @@ export default function Login() {
         }
     }
     return (
-        <View className={"flex-1 flex-row justify-center items-center bg-[#F5F5F5]"}>
+        <View className={"flex-1 py-3 justify-start items-center flex-col bg-[#393E46]"}>
             <View
-                className={" flex-[0.9] bg-[#2F89FC] border-blue-400 border-2 shadow-xl items-center justify-center py-16  rounded-[10]"}>
+                className={"w-[95%] bg-[#4D5B66] shadow-black shadow-xl items-center justify-center py-8  rounded-[10]"}>
                 <View className={"bg-gray-200 p-5 rounded-xl items-center flex-row m-3"}>
-                    <Feather name="user" size={24} color="black" className={"mr-2"}/>
+                    <Feather name="user" size={24} color="#00ADB5" className={"mr-2"}/>
                     <TextInput
-                        className={"flex-1"}
+                        className={"flex-1 font-azonix"}
                         placeholder={"username"}
                         onChangeText={(text) => setUsername(text)}
                         value={username}
@@ -57,9 +58,9 @@ export default function Login() {
                     </TextInput>
                 </View>
                 <View className={"bg-gray-200 p-5 rounded-xl items-center flex-row m-3"}>
-                    <Feather name="lock" size={24} color="black" className={"mr-2"}/>
+                    <Feather name="lock" size={24} color="#00ADB5" className={"mr-2"}/>
                     <TextInput
-                        className={"flex-1"}
+                        className={"flex-1 font-azonix"}
                         placeholder={"password"}
                         onChangeText={(text) => setPassword(text)}
                         value={password}
@@ -70,17 +71,24 @@ export default function Login() {
                 </View>
 
                 <TouchableOpacity
-                    className={(loading ? "opacity-60" : "opacity-100") + " py-5 px-12 rounded-[5] shadow-lg bg-white"}
+                    className={(loading ? "opacity-60" : "opacity-100") + " py-4 px-12 rounded-xl shadow-lg bg-white flex-row mx-3"}
                     onPress={() => fetchLogin()}
                     activeOpacity={1}
                     disabled={loading}
                 >
-                    <Text className={"text-xl font-bold"}>
-                        Login
-                    </Text>
+                    <View className={"flex-1 flex-row justify-center items-center h-max"}>
+
+
+                        {
+                            loading ? <ActivityIndicator size={24} color={"#00ADB5"}/> : <Text className={"text-xl font-azonix text-center"}>
+                                Login
+                            </Text>
+                        }
+                    </View>
                 </TouchableOpacity>
 
             </View>
+
         </View>
     )
 }
