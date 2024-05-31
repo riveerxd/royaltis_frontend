@@ -1,10 +1,9 @@
-import {ActivityIndicator, SafeAreaView, Text, TextInput, ToastAndroid, TouchableOpacity, View} from "react-native";
+import {ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View} from "react-native";
 import {useState} from "react"
 import {Feather} from "@expo/vector-icons";
-import axios from "axios";
 import {useDispatch} from "react-redux";
 import {useNavigation} from "@react-navigation/native";
-import {ipAddress} from "./constants";
+import {getAPIUrlFromStorage, showAPIConfigAlert} from "./Utils";
 
 export default function Login() {
     const [username, setUsername] = useState("")
@@ -18,31 +17,69 @@ export default function Login() {
     }
 
     const fetchLogin = async () => {
+        console.log("logpressed")
+        const APIUrl = await getAPIUrlFromStorage();
+        if (APIUrl == null) {
+            console.log("no api endpoint")
+            showAPIConfigAlert(navigation);
+            return; // Exit the function early if the API URL is missing
+        }
+
         try {
-            setLoading(true)
+            setLoading(true);
             const payload = {
                 username: username,
                 password: password
-            }
-            const response = await axios.post("http://" + ipAddress + ":8080/login", payload)
+            };
 
-            if (response.status === 200) {
-                const newToken = response.headers.get("X-Token")
-                console.log(newToken)
-                handleLogin(newToken)
+            const response = await fetch(APIUrl + ":8082/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) { // Check response.ok instead of response.status
+                const newToken = response.headers.get("X-Token");
+                console.log(newToken);
+                handleLogin(newToken);
             } else {
-                console.error(response.data)
-                ToastAndroid.show("Invalid credentials", ToastAndroid.SHORT)
+                const errorData = await response; // Parse error response
+                console.error(errorData);
+
+                let errorMessage = "Invalid credentials";
+                if (response.status === 401) {
+                    errorMessage = "Authentication error: " + errorMessage;
+                } else {
+                    errorMessage = "Server error: " + errorData.message || "Unknown error"; // Use detailed message if available
+                }
+
+                Alert.alert(errorMessage, "", [{text: "OK"}]);
             }
         } catch (error) {
-            console.log(error)
-            ToastAndroid.show("Server error", ToastAndroid.SHORT)
+            console.log(error);
+
+            Alert.alert(
+                "Server error",
+                error.message + ": The API endpoint is down", // Show error message from the exception
+                [
+                    {text: "OK"},
+                    {
+                        text: "Configure",
+                        onPress: () => {
+                            navigation.navigate("Settings");
+                        }
+                    }
+                ]
+            );
         } finally {
-            setLoading(false)
-            setUsername("")
-            setPassword("")
+            setLoading(false);
+            setUsername("");
+            setPassword("");
         }
-    }
+    };
+
     return (
         <View className={"flex-1 py-3 justify-start items-center flex-col bg-[#393E46]"}>
             <View
@@ -80,9 +117,10 @@ export default function Login() {
 
 
                         {
-                            loading ? <ActivityIndicator size={24} color={"#00ADB5"}/> : <Text className={"text-xl font-azonix text-center"}>
-                                Login
-                            </Text>
+                            loading ? <ActivityIndicator size={24} color={"#00ADB5"}/> :
+                                <Text className={"text-xl font-azonix text-center"}>
+                                    Login
+                                </Text>
                         }
                     </View>
                 </TouchableOpacity>
