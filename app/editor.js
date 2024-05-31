@@ -1,7 +1,12 @@
 import React, {createRef, useEffect, useMemo, useState} from 'react';
-import {Image, Keyboard, StatusBar, Text, TouchableOpacity, View} from "react-native";
-import MapView, {Marker, Polygon,} from 'react-native-maps';
-import {BottomSheetModal, BottomSheetModalProvider, BottomSheetTextInput} from '@gorhom/bottom-sheet';
+import {Alert, Image, Text, TouchableOpacity, View} from "react-native";
+import MapView, {Marker, Polygon, PROVIDER_GOOGLE,} from 'react-native-maps';
+import {
+    BottomSheetModal,
+    BottomSheetModalProvider,
+    BottomSheetScrollView,
+    BottomSheetTextInput
+} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {getCurrentPositionAsync, requestForegroundPermissionsAsync} from "expo-location";
 import {
@@ -14,21 +19,21 @@ import {
     MaterialCommunityIcons,
     MaterialIcons
 } from "@expo/vector-icons";
-import Constants from "expo-constants/src/Constants";
-import {findMiddlePoint, getDistance, getRandomId} from "../src/utilities/Utils";
+import {findMiddlePoint, getDistance, getRandomId} from "./Utils";
+import {useNavigation} from "@react-navigation/native";
+import {customMapStyle} from "./styles/mapStyles";
 
 export default function Editor() {
 
     const [bottomSheetData, setBottomSheetData] = useState(null)
-    const snapPoint = useMemo(() => ["30%", "50%", "75"], [])
+    const snapPoint = useMemo(() => ["30%", "50%", "75%"], [])
     const mapRef = createRef()
     const popupRef = createRef()
-    const popupRef1 = createRef()
     const [userLocation, setUserLocation] = useState(null);
     const [idList, setIdList] = useState([])
     const [newLootboxItemValue, setNewLootboxItemValue] = useState(null)
     const [borderEngine, setBorderEngine] = useState(false)
-
+    const navigation = useNavigation()
 
     const handleMapPress = (e) => {
         const coords = e.nativeEvent.coordinate
@@ -52,26 +57,24 @@ export default function Editor() {
 
     }
 
-    const [keyboardShown, setKeyboardShown] = useState(false)
-    useEffect(() => {
-        const keyboardShowSubscription = Keyboard.addListener("keyboardDidShow", () => {
-            setKeyboardShown(true)
-            console.log(lootboxMarkers)
-        })
-        const keyboardHideSubscription = Keyboard.addListener("keyboardDidHide", () => {
-            setKeyboardShown(false)
-        })
-    }, []);
-
 
     const handleReset = () => {
-        if (unassignedMarkers.length !== 0 || borderMarkers.length !== 0 || lootboxMarkers.length !== 0 || mapCenter != null || bottomSheetData != null) {
-            setUnassignedMarkers([])
-            setBorderMarkers([])
-            setLootboxMarkers([])
-            setMapCenter(null)
-            setBottomSheetData(null)
+        try {
+            if (unassignedMarkers.length !== 0 || borderMarkers.length !== 0 || lootboxMarkers.length !== 0 || mapCenter != null || bottomSheetData != null) {
+                closeBottomSheetModal()
+                setUnassignedMarkers([])
+                setBorderMarkers([])
+                setLootboxMarkers([])
+                setMapCenter(null)
+                setBottomSheetData(null)
+            }
+        } catch (e) {
+            console.error(e)
         }
+    }
+
+    const getData = () => {
+        return [borderMarkers, lootboxMarkers, [mapCenter]]
     }
 
     function addNewBorderMarker(newMarker) {
@@ -79,7 +82,7 @@ export default function Editor() {
             if (borderMarkers.length < 4) {
                 setBorderMarkers(prevZoneBorders => [...prevZoneBorders, newMarker]);
             } else {
-                if (!borderEngine){
+                if (!borderEngine) {
                     return setBorderMarkers(prevZoneBorders => [...prevZoneBorders, newMarker]);
                 }
                 let bestAverageDistance = Infinity;
@@ -120,44 +123,26 @@ export default function Editor() {
 
 
     const handlePopup = (obj) => {
+        popupRef.current?.present()
         setBottomSheetData(obj)
-        popupRef.current.present()
     }
 
     const [unassignedMarkers, setUnassignedMarkers] = useState([])
-    const [borderMarkers, setBorderMarkers] = useState([
-    {
-        "coords": {"latitude": 50.074474871857205, "longitude": 14.425810240209103},
-        "id": 466, "type": "border"
-    }, {
-        "coords": {"latitude": 50.073860106329974, "longitude": 14.426557570695879},
-        "id": 485,
-        "type": "border"
-    }, {
-        "coords": {"latitude": 50.073103312041745, "longitude": 14.42719928920269},
-        "id": 551,
-        "type": "border"
-    }, {
-        "coords": {"latitude": 50.071726548443856, "longitude": 14.427833631634712},
-        "id": 909,
-        "type": "border"
-    }, {
-        "coords": {"latitude": 50.07136761076934, "longitude": 14.424742050468922},
-        "id": 31,
-        "type": "border"
-    }, {
-        "coords": {"latitude": 50.07270651208333, "longitude": 14.424573741853239},
-        "id": 700,
-        "type": "border"
-    }, {
-        "coords": {"latitude": 50.07338498637528, "longitude": 14.424619674682617},
-        "id": 528,
-        "type": "border"
-    }, {"coords": {"latitude": 50.07378242626077, "longitude": 14.424291104078295}, "id": 454, "type": "border"}])
+    const [borderMarkers, setBorderMarkers] = useState([])
     const [lootboxMarkers, setLootboxMarkers] = useState([])
     const [mapCenter, setMapCenter] = useState(null)
 
-
+    const confirmGame = () => {
+        if (borderMarkers.length >= 3) {
+            navigation.navigate("GC", getData())
+        } else {
+            Alert.alert(
+                "Error",
+                "The game must contain at least 3 border markers",
+                [{text: "OK"}]
+            );
+        }
+    }
     useEffect(() => {
         if (borderMarkers.length >= 3) {
             setMapCenter(findMiddlePoint(borderMarkers, idList))
@@ -205,13 +190,7 @@ export default function Editor() {
         }
     }, [userLocation, hasAnimatedToUserLoc]);
 
-    const onMapReady = () => {
-    }
-    const handleClose = () => {
-        if (popupRef.current) {
-            popupRef.current.dismiss();
-        }
-    };
+
     const polygonCoordinates = borderMarkers.map(point => point.coords);
 
     const openBottomSheetModal = () => {
@@ -221,12 +200,6 @@ export default function Editor() {
     const closeBottomSheetModal = () => {
         popupRef.current?.close();
     };
-    /*
-        useEffect(() => {
-            openBottomSheetModal()
-        }, [bottomSheetData]);
-
-     */
 
 
     const [brush, setBrush] = useState(false)
@@ -235,16 +208,14 @@ export default function Editor() {
         setBrush(!brush)
     }
 
-    /*
-    useEffect(() => {
-        popupRef1.current?.present();
-    }, []);
-     */
     const removeMarkerButton = () => {
         setUnassignedMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
         setBorderMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
         setLootboxMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
         setBottomSheetData(null)
+        if (mapCenter && mapCenter.id == bottomSheetData.id) {
+            setMapCenter(null)
+        }
 
         for (let i = 0; i < idList.length; i++) {
             if (idList[i] == bottomSheetData.id) {
@@ -252,6 +223,7 @@ export default function Editor() {
                 break;
             }
         }
+        popupRef.current?.close()
     };
 
     const setAsLootbox = () => {
@@ -266,6 +238,16 @@ export default function Editor() {
             setBottomSheetData(newElement)
             return [...prevState, newElement];
         });
+    }
+    const setAsMiddlePoint = () => {
+        setUnassignedMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== bottomSheetData.id));
+        const newMidPoint = {
+            type: "mapCenter",
+            id: getRandomId(idList),
+            coords: bottomSheetData.coords
+        }
+        setMapCenter(newMidPoint)
+        setBottomSheetData(newMidPoint)
     }
 
 
@@ -296,8 +278,7 @@ export default function Editor() {
             });
             console.log("Updated lootbox markers:", updatedMarkers);
 
-            // Trigger re-render by setting a state variable that depends on the updated markers
-            setLootboxMarkers(updatedMarkers); // <-- Add this line to force re-render
+            setLootboxMarkers(updatedMarkers);
 
             return updatedMarkers;
         });
@@ -313,157 +294,32 @@ export default function Editor() {
         </View>
     }
 
-    useEffect(() => {
-        return
-        const interval = setInterval(() => {
-            // Move markers every 10 seconds
-            const timeElapsed = 10; // Time elapsed in seconds
-            const movedMarkers = moveBorderMarkers({
-                "coords": {
-                    "latitude": 50.07305079677018,
-                    "longitude": 14.425703412853181
-                }
-            }, borderMarkers, 1);
-            setBorderMarkers(movedMarkers);
-        }, 200); // Interval set to 10 seconds (10000 milliseconds)
-
-        return () => clearInterval(interval); // Cleanup function to clear the interval
-    }, [borderMarkers]);
-
-    function moveBorderMarkers(center, markers, time) {
-        const distancePerSecond = 0.00001; // Adjust this value as needed for the speed of movement
-
-        const movedMarkers = markers.map(marker => {
-            // Calculate distance between marker and center point using Haversine formula
-            const R = 6371e3; // meters
-            const φ1 = center.coords.latitude * Math.PI / 180; // φ, λ in radians
-            const φ2 = marker.coords.latitude * Math.PI / 180;
-            const Δφ = (marker.coords.latitude - center.coords.latitude) * Math.PI / 180;
-            const Δλ = (marker.coords.longitude - center.coords.longitude) * Math.PI / 180;
-
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-            const distance = R * c; // in meters
-
-            // Calculate the distance marker needs to move towards center based on time
-            const distanceToMove = distancePerSecond * time;
-
-            // Calculate the new coordinates for the marker
-            const dx = center.coords.longitude - marker.coords.longitude;
-            const dy = center.coords.latitude - marker.coords.latitude;
-            const angle = Math.atan2(dy, dx);
-            const newLongitude = marker.coords.longitude + (distanceToMove * Math.cos(angle));
-            const newLatitude = marker.coords.latitude + (distanceToMove * Math.sin(angle));
-
-            // Return the marker with updated coordinates
-            return {
-                coords: {
-                    latitude: newLatitude,
-                    longitude: newLongitude
-                },
-                id: marker.id,
-                type: marker.type
-            };
-        });
-
-        return movedMarkers;
-    }
-
-    function moveMarkersTowardsCenter(center, markers, totalTime) {
-        // Calculate the number of "virtual" frames based on total time (no actual animation)
-        const fps = 2; // Adjust FPS as needed
-        const totalFrames = Math.round(totalTime * fps);
-
-        // Loop through each marker
-        return markers.map(marker => {
-            const {latitude: markerLat, longitude: markerLng} = marker.coords;
-            const {latitude: centerLat, longitude: centerLng} = center.coords;
-
-            // Calculate the total difference between marker and center coordinates
-            const deltaLat = centerLat - markerLat;
-            const deltaLng = centerLng - markerLng;
-
-            // Calculate movement per "virtual" frame (fixed distance per step)
-            const movementPerFrameLat = deltaLat / totalFrames;
-            const movementPerFrameLng = deltaLng / totalFrames;
-
-            // Create a new array to store updated coordinates (avoids object mutation)
-            const newCoords = {
-                latitude: markerLat,
-                longitude: markerLng,
-            };
-
-            // Perform the virtual movement (no animation loop)
-            for (let frame = 0; frame <= totalFrames; frame++) {
-                newCoords.latitude += movementPerFrameLat;
-                newCoords.longitude += movementPerFrameLng;
-            }
-
-            // Return the marker with updated coordinates
-            return {
-                ...marker,
-                coords: newCoords,
-            };
-        });
-    }
-
-
-    const markerBottomSheet = () => {
-        return (
-            <View className={"flex-col p-3 items-center"}>
-                <Text className={"text-4xl font-black text-center capitalize"}>
-                    {bottomSheetData.type + " " + bottomSheetData.id}</Text>
-
-                {bottomSheetData.type == "lootbox" ? <View className={"min-w-[80%]"}>
-                    <Text className={"text-3xl mt-4 text-center underline"}>Containments</Text>
-
-                    {bottomSheetData.items.length != 0 ? <View className={"justify-center items-center mt-2"}>
-                        {//li here*
-                        }
-                        {bottomSheetData.items.map((curr, index) => {
-                            return <View key={"item-" + index}
-                                         className={"flex-row items-center p-3 bg-gray-100 w-[90%] border-b rounded-lg border-gray-300 shadow-2xl"}>
-                                <Text className={"text-2xl mr-auto"}>&#8226; {curr.name}</Text>
-                                <TouchableOpacity activeOpacity={1} onPress={() => removeFromLootbox(curr.name)}>
-                                    <Feather key={"removeItem-" + index} name="trash-2" size={30} color="red"/>
-                                </TouchableOpacity>
-                            </View>
-                        })}
-                    </View> : <Text className={"text-red-700 text-center text-xl"}>Lootbox is empty</Text>
-                    }
-
-
-                    <View
-                        className="flex-row items-center justify-between bg-gray-300 py-2 px-3 rounded-lg mt-5 shadow-2xl">
-                        <BottomSheetTextInput
-                            value={newLootboxItemValue}
-                            onChangeText={setNewLootboxItemValue}
-                            placeholder="Item name"
-                            maxLength={20}
-                            className="bg-white p-2 text-lg rounded mr-auto flex-grow"
-                        />
-                        <TouchableOpacity
-                            className="bg-black rounded-full p-3 shadow-2xl"
-                            activeOpacity={1}
-                            onPress={addToLootbox}>
-                            <AntDesign name="plus" size={26} color="lime"/>
-                        </TouchableOpacity>
-                    </View>
-
-
-                </View> : null
-                }
-                <View className={"flex-row w-[60%] items-center justify-evenly mt-5"}>
+    const renderButtons = () => {
+        switch (bottomSheetData.type) {
+            case "mapCenter":
+                return <View className={"flex-row w-[60%]  items-center justify-evenly my-3"}>
 
                     <TouchableOpacity
                         className={"bg-black rounded-full p-3"}
                         activeOpacity={1}
-                        onPress={setAsLootbox}>
-                        <Entypo name="box" size={30} color="white"/>
+                        onPress={removeMarkerButton}>
+                        <Feather name="trash-2" size={30} color="red"/>
                     </TouchableOpacity>
+                </View>
+
+            case "border":
+                return <View className={"flex-row w-[60%]  items-center justify-evenly my-3"}>
+
+                    <TouchableOpacity
+                        className={"bg-black rounded-full p-3"}
+                        activeOpacity={1}
+                        onPress={removeMarkerButton}>
+                        <Feather name="trash-2" size={30} color="red"/>
+                    </TouchableOpacity>
+                </View>
+
+            case "lootbox":
+                return <View className={"flex-row w-[60%]  items-center justify-evenly my-3"}>
 
                     <TouchableOpacity
                         className={"bg-black rounded-full p-3"}
@@ -472,56 +328,145 @@ export default function Editor() {
                         <Feather name="trash-2" size={30} color="red"/>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        className={"bg-black rounded-full p-3"}
-                        activeOpacity={1}>
-                        <FontAwesome5 name="compress-arrows-alt" size={30} color="white"/>
-                    </TouchableOpacity>
-
-
                 </View>
 
+            case "unassigned":
+                return <View className={"flex-row w-[60%]  items-center justify-evenly my-3"}>
+
+                    <TouchableOpacity
+                        className={"bg-black rounded-full p-3"}
+                        activeOpacity={1}
+                        onPress={removeMarkerButton}>
+                        <Feather name="trash-2" size={30} color="red"/>
+                    </TouchableOpacity>
+
+                    {
+                        bottomSheetData.type == "lootbox" ? null :
+                            <TouchableOpacity
+                                className={"bg-black rounded-full p-3"}
+                                activeOpacity={1}
+                                onPress={setAsLootbox}>
+                                <Entypo name="box" size={30} color="white"/>
+                            </TouchableOpacity>
+                    }
+
+                    <TouchableOpacity
+                        className={"bg-black rounded-full p-3"}
+                        activeOpacity={1}
+                        onPress={setAsMiddlePoint}
+                    >
+
+                        <FontAwesome5 name="compress-arrows-alt" size={30} color="white"/>
+                    </TouchableOpacity>
+                </View>
+        }
+    }
+
+
+    const markerBottomSheet = () => {
+        return (
+            <View className={"flex-1 flex-col p-2 items-center"}>
+                <Text className={"text-4xl text-center font-azonix text-white"}>
+                    {bottomSheetData.type + " " + bottomSheetData.id}</Text>
+                <View className={"items-center"}>
+                    <Text className={"p-1 font-azonix text-gray-400"}>Lat {bottomSheetData.coords.latitude}</Text>
+                    <Text className={"p-1 font-azonix text-gray-400"}>Lng {bottomSheetData.coords.longitude}</Text>
+                </View>
+
+                {
+                    renderButtons()
+                }
+
+                {bottomSheetData.type == "lootbox" ?
+                    <View className={""}>
+                        <BottomSheetScrollView
+                            contentContainerStyle={{
+                                alignItems: "center",
+                                flexDirection: "row"
+                            }}>
+                            <View className={"w-full"}>
+                                {
+                                    bottomSheetData.items.map((curr, index) => {
+                                        return <View key={index}
+                                                     className={"bg-[#393E46] flex-row items-center p-2 rounded-xl mb-1"}>
+                                            <View className={"flex-1 flex-row items-center mr-auto"}>
+                                                <Feather name="box" size={26} color="#00ADB5" className={"mr-1"}/>
+                                                <Text className={"flex-1 text-white capitalize font-bold text-lg"}
+                                                      ellipsizeMode={"tail"} numberOfLines={1}>{curr.name}</Text>
+                                            </View>
+                                            <View>
+                                                <TouchableOpacity onPress={() => removeFromLootbox(curr.name)}>
+                                                    <FontAwesome name="remove" size={28} color="#FF0000"/>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    })
+                                }
+                                <View className={"mt-5 bg-[#393E46] flex-row rounded-xl p-2 border-green-400 border-2"}>
+                                    <Feather name="box" size={26} color="#00ADB5" className={"mr-1"}/>
+                                    <BottomSheetTextInput
+                                        value={newLootboxItemValue}
+                                        onChangeText={setNewLootboxItemValue}
+                                        placeholder="New item name"
+                                        maxLength={50}
+                                        className={"flex-1 text-white"}
+                                    />
+                                    <TouchableOpacity
+                                        className=""
+                                        activeOpacity={1}
+                                        onPress={addToLootbox}>
+                                        <AntDesign name="plus" size={26} color="lime"/>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </BottomSheetScrollView>
+                    </View> : null
+                }
             </View>
         )
     }
 
-    useEffect(() => {
-        if (bottomSheetData == null) {
-            popupRef.current?.close()
-        }
-    }, [bottomSheetData]);
+
     return (
         <GestureHandlerRootView style={{flex: 1}}>
             <BottomSheetModalProvider>
-                <StatusBar barStyle={"dark-content"}/>
-
                 <BottomSheetModal
-                    style={{marginTop: Constants.statusBarHeight}}
                     ref={popupRef}
                     index={0}
                     snapPoints={snapPoint}
-                    enablePanDownToClose={false}
-                    className={"absolute z-20"}
+                    enablePanDownToClose={true}
+                    backgroundStyle={{
+                        backgroundColor: "#222831"
+                    }}
+                    containerStyle={{
+                        zIndex: 11
+                    }}
 
                 >
 
-                    {bottomSheetData ? markerBottomSheet() : null}
+                    {bottomSheetData ? markerBottomSheet() : () => closeBottomSheetModal}
 
                 </BottomSheetModal>
 
 
                 <MapView
+                    provider={PROVIDER_GOOGLE}
                     ref={mapRef}
-                    initialRegion={userLocation}
                     showsUserLocation={true}
-                    style={{flex: 1}}
                     onPress={handleMapPress}
-                    onMapReady={onMapReady}
                     showsMyLocationButton={false}
                     showsCompass={false}
                     showsPointsOfInterest={false}
                     customMapStyle={customMapStyle}
                     userInterfaceStyle={"dark"}
+                    toolbarEnabled={false}
+                    rotateEnabled={false}
+                    pitchEnabled={false}
+
+
+                    style={{
+                        flex: 1,
+                    }}
                 >
 
                     {
@@ -543,12 +488,11 @@ export default function Editor() {
                                 coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
                                 onPress={() => handlePopup(curr)}
                                 anchor={{x: 0.5, y: 0.5}}
-                                icon={require("../assets/icons/questionmark_optimized.png")}
+                                tracksViewChanges={false}
 
                             >
-
-
-
+                                <Image source={require('../assets/icons/questionmark_optimized.png')}
+                                       style={{height: 25, width: 25}}/>
                             </Marker>
                         })
                     }
@@ -556,13 +500,15 @@ export default function Editor() {
                     {
                         borderMarkers.map((curr) => {
                             return <Marker
-                                index={curr.id}
+                                key={curr.id}
                                 coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
                                 onPress={() => handlePopup(curr)}
                                 anchor={{x: 0.5, y: 0.5}}
-                                icon={require("../assets/icons/dot_optimized.png")}
+                                tracksViewChanges={false}
 
                             >
+                                <Image source={require("../assets/icons/dot_optimized.png")}
+                                       style={{height: 25, width: 25}}/>
                             </Marker>
                         })
                     }
@@ -571,8 +517,10 @@ export default function Editor() {
                         mapCenter ? <Marker
                             coordinate={mapCenter.coords}
                             onPress={() => handlePopup(mapCenter)}
-                            icon={require("../assets/icons/center(1).png")}
+                            anchor={{x: 0.5, y: 0.5}}
+                            tracksViewChanges={false}
                         >
+                            <Image source={require("../assets/icons/center(1).png")} style={{height: 25, width: 25}}/>
                         </Marker> : null
                     }
 
@@ -580,13 +528,15 @@ export default function Editor() {
                     {
                         lootboxMarkers.map((curr) => {
                             return <Marker
-                                index={curr.id}
+                                key={curr.id}
                                 coordinate={curr.coords}
                                 onPress={() => handlePopup(curr)}
                                 anchor={{x: 0.5, y: 0.5}}
-                                icon={require("../assets/icons/lootbox_optimized(2).png")}
+                                tracksViewChanges={false}
                             >
 
+                                <Image source={require("../assets/icons/lootbox_optimized(2).png")}
+                                       style={{height: 25, width: 25}}/>
 
                             </Marker>
                         })
@@ -597,63 +547,47 @@ export default function Editor() {
 
 
                 <TouchableOpacity
-                    className={"absolute top-4 right-4 bg-white rounded-full p-3 z-10 "}
-                    style={{display: keyboardShown ? "none" : "block"}}
+                    className={"absolute top-4 right-4 bg-[#222831] rounded-full p-3 z-10 "}
                     activeOpacity={1}
                     onPress={() => animateToUserLoc(0.009)}
                 >
-                    <MaterialIcons name="my-location" size={30} color="black"/>
+                    <MaterialIcons name="my-location" size={30} color="white"/>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    className={"absolute top-20 right-4 bg-white rounded-full p-3 z-10"}
-                    style={{display: keyboardShown ? "none" : "block"}}
+                    className={"absolute top-20 right-4 bg-[#222831] rounded-full p-3 z-10"}
                     onPress={handleBrushPress}
                     activeOpacity={1}
                 >
-                    <FontAwesome name="paint-brush" size={30} color={brush ? "blue" : "black"}/>
+                    <FontAwesome name="paint-brush" size={30} color={brush ? "blue" : "white"}/>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    className={"absolute top-36 right-4 bg-white rounded-full p-3 z-10"}
-                    style={{display: keyboardShown ? "none" : "block"}}
+                    className={"absolute top-36 right-4 bg-[#222831] rounded-full p-3 z-10"}
                     onPress={toggleBorderEngine}
                     activeOpacity={1}
                 >
-                    <MaterialCommunityIcons name="transit-connection-horizontal" size={30} color={borderEngine ? "blue" : "black"} />
+                    <MaterialCommunityIcons name="transit-connection-horizontal" size={30}
+                                            color={borderEngine ? "blue" : "white"}/>
                 </TouchableOpacity>
                 <TouchableOpacity
                     className={"absolute top-52 right-4 bg-red-500 rounded-full p-3 z-10"}
-                    style={{display: keyboardShown ? "none" : "block"}}
                     onPress={handleReset}
                     activeOpacity={1}
                 >
                     <Ionicons name="reload" size={30} color="white"/>
                 </TouchableOpacity>
-            </BottomSheetModalProvider>
 
+
+                <TouchableOpacity
+                    className={(borderMarkers.length >= 3 ? "bg-green-500" : "bg-gray-400") + " absolute top-4 left-4 bg-gray-300 rounded-full p-3 z-10"}
+                    onPress={confirmGame}
+                    activeOpacity={1}
+                >
+                    <Feather name="check" size={30} color="white"/>
+                </TouchableOpacity>
+            </BottomSheetModalProvider>
 
         </GestureHandlerRootView>
     );
 };
-
-const customMapStyle = [
-    {
-        featureType: 'poi',
-        elementType: 'labels',
-        stylers: [
-            {
-                visibility: 'off',
-            },
-        ],
-    },
-    {
-        featureType: 'transit.station',
-        elementType: 'labels',
-        stylers: [
-            {
-                visibility: 'off',
-            },
-        ],
-    },
-];
