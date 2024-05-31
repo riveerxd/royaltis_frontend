@@ -1,103 +1,130 @@
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {CodeField, Cursor, useBlurOnFulfill, useClearByFocusCell} from "react-native-confirmation-code-field";
-import {useState, useEffect} from "react";
+import {Alert, Text, TouchableOpacity, View} from "react-native";
+import {useEffect} from "react";
 import {useNavigation} from "@react-navigation/native";
-import {useSelector} from "react-redux";
+import {useDispatch, useSelector} from "react-redux";
 import {AntDesign} from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {useFonts} from "expo-font";
+import * as SecureStore from 'expo-secure-store';
+import MultipleDigitsInput from "./Components/MultipleDigitsInput";
+import {getAPIUrlFromStorage, showAPIConfigAlert} from "./Utils";
 
 export default function Home() {
     const navigation = useNavigation()
     const isLoggedIn = useSelector(state => state.auth.loggedIn)
+    const dispatch = useDispatch()
 
     const [fontsLoaded, fontError] = useFonts({
-        // Define your font here
         'azonix': require('../assets/fonts/azonix.otf'),
     });
 
-    const styles = StyleSheet.create({
-        root: {flex: 1, padding: 20},
-        title: {textAlign: 'center', fontSize: 30},
-        cell: {
-            width: 50,
-            height: 50,
-            lineHeight: 48,
-            fontSize: 24,
-            borderWidth: 1.5,
-            marginLeft: 2,
-            marginRight: 2,
-            borderColor: '#00000030',
-            textAlign: 'center',
-            borderRadius: 15,
-            backgroundColor: "#FFFFFF"
-        },
-        focusCell: {
-            borderColor: '#000',
-        },
-    });
-    const [value, setValue] = useState('');
-    const ref = useBlurOnFulfill({value, cellCount: 6});
-    const [props, getCellOnLayoutHandler] = useClearByFocusCell({
-        value,
-        setValue,
-    });
+    const fetchJoin = async (code) => {
+        const API_BASE_URL = await getAPIUrlFromStorage();
+        if (API_BASE_URL == null) {
+            showAPIConfigAlert(navigation);
+            return; // Exit the function if the API URL is missing
+        }
+
+        try {
+            const payload = {
+                lobbyCode: code
+            };
+
+            const response = await fetch(API_BASE_URL + ":8082/join", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const gameId = await response.json();
+                navigation.navigate("Game", {
+                    gameId: gameId,
+                    lobbyCode: parseInt(code)
+                });
+            } else if (response.status === 403) {
+                Alert.alert(
+                    "Lobby code invalid",
+                    "Lobby does not exist",
+                    [{text: "OK"}]
+                );
+            } else {
+                const errorData = await response;
+                Alert.alert(
+                    "Server error",
+                    errorData.message || "Unknown error",
+                    [{text: "OK"}]
+                );
+            }
+        } catch (error) {
+            console.log(error);
+            Alert.alert(
+                "Network error",
+                error.message + ": The API endpoint is down or has wrong configuration",
+                [{text: "OK"}, {
+                    text: "configure", onPress: () => navigation.navigate("Settings")
+                }]
+            );
+        }
+    };
 
 
     useEffect(() => {
-        console.log(AsyncStorage.getItem("token"))
+        const display = async () => {
+            const isAvailable = await SecureStore.isAvailableAsync();
+            if (isAvailable) {
+                try {
+                    let token = await SecureStore.getItemAsync("token");
+                    if (token) {
+                        dispatch({type: "LOGIN", token: token})
+                    }
+                } catch (e) {
+                    console.error("Error retrieving token:", e);
+                }
+            } else {
+                console.warn("SecureStore not available yet");
+            }
+        };
+
+        display();
     }, []);
+
     const renderAdmin = () => {
         if (isLoggedIn) {
             return <>
                 <View className={"bg-[#4D5B66] px-3 py-6 rounded-2xl w-full  shadow-2xl shadow-black mt-3"}>
                     <Text className={"text-center text-4xl mb-5 text-white font-azonix"}>Admin panel</Text>
 
-                    <TouchableOpacity className={"border-[3px] border-[#00ADB5] p-5 rounded-xl mb-2  flex-row shadow-2xl"}
-                                      onPress={() => navigation.navigate("Editor")}
+                    <TouchableOpacity
+                        className={"border-[3px] border-[#00ADB5] p-5 rounded-xl mb-2  flex-row shadow-2xl"}
+                        onPress={() => navigation.navigate("Editor")}
                     >
                         <Text className={"text-white text-center text-2xl font-azonix mr-auto"}>Editor</Text>
-                        <AntDesign name="arrowright" size={28} color="white" />
+                        <AntDesign name="arrowright" size={28} color="white"/>
                     </TouchableOpacity>
-                    <TouchableOpacity className={"border-[3px] border-[#00ADB5] p-5 rounded-xl mb-2  flex-row shadow-2xl"}
-                                      onPress={() => navigation.navigate("GL")}
+                    <TouchableOpacity
+                        className={"border-[3px] border-[#00ADB5] p-5 rounded-xl mb-2  flex-row shadow-2xl"}
+                        onPress={() => navigation.navigate("GL")}
                     >
                         <Text className={"text-white text-2xl text-center font-azonix mr-auto"}>Templates</Text>
-                        <AntDesign name="arrowright" size={28} color="white" />
+                        <AntDesign name="arrowright" size={28} color="white"/>
                     </TouchableOpacity>
                 </View>
             </>
         }
     }
 
+
     return (
         <View className={"flex-1 bg-[#393E46] flex-col p-1"}>
             <View className={"flex-1 items-center flex-col "}>
                 <View className={"bg-[#4D5B66] pb-3 py-6 rounded-2xl w-full shadow-black shadow-2xl"}>
                     <Text className={"text-center text-4xl mb-5 text-white font-azonix"}>Lobby Code</Text>
-                    <View className={"flex-row items-center justify-center"}>
-                        <CodeField
-                            ref={ref}
-                            {...props}
-                            value={value}
-                            onChangeText={setValue}
-                            cellCount={6}
-                            keyboardType="number-pad"
-                            renderCell={({index, symbol, isFocused}) => (
-                                <Text
-                                    key={index}
-                                    style={[styles.cell, isFocused && styles.focusCell]}
-                                    onLayout={getCellOnLayoutHandler(index)}>
-                                    {symbol || (isFocused ? <Cursor/> : null)}
-                                </Text>
-                            )}
-                        />
-                        <TouchableOpacity className={" items-center"}
-                                          onPress={() => navigation.navigate("Game")}
-                        >
+                    <View className={"flex-row items-center justify-center mb-2"}>
 
-                            <AntDesign name="rightcircleo" size={48} color="#00ADB5"/>
-                        </TouchableOpacity>
+                        <MultipleDigitsInput onCodeComplete={fetchJoin}/>
+
                     </View>
                 </View>
 
@@ -105,9 +132,6 @@ export default function Home() {
                     renderAdmin()
                 }
 
-                {
-                    console.log(isLoggedIn)
-                }
             </View>
         </View>
     )
