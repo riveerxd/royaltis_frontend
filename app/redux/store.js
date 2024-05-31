@@ -1,26 +1,19 @@
-import {createStore, combineReducers} from "redux/src";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {combineReducers, createStore} from "redux/src";
+import * as SecureStore from 'expo-secure-store';
 
 const storeToken = async (token) => {
-    try {
-        await AsyncStorage.setItem("token", token);
-        console.log("Token stored successfully:", token);
-    } catch (error) {
-        console.error('Error storing token:', error);
-    }
+    await SecureStore.setItemAsync("token", token)
+    console.log("token saved")
 };
 
-const removeToken = async (token) =>{
-    try{
-        await AsyncStorage.removeItem("token")
-        console.log("Token deleted")
-    }catch (error){
-        console.error(error)
-    }
+const removeToken = async (token) => {
+    await SecureStore.deleteItemAsync("token")
+    console.log("Token deleted")
+
 }
 
-const authReducer = (state = {loggedIn: false}, action) =>{
-    switch (action.type){
+const authReducer = (state = {loggedIn: false}, action) => {
+    switch (action.type) {
         case "LOGIN":
             storeToken(action.token)
             return {...state, loggedIn: true}
@@ -32,7 +25,7 @@ const authReducer = (state = {loggedIn: false}, action) =>{
     }
 }
 
-const  rootReducer = combineReducers({
+const rootReducer = combineReducers({
     auth: authReducer
 })
 
