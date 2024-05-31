@@ -12,6 +12,9 @@ import {useNavigation} from "@react-navigation/native";
 import {Provider, useDispatch, useSelector} from "react-redux";
 import store from "./redux/store"
 import {useFonts} from "expo-font";
+import StartGame from "./startgame";
+import * as SystemUI from "expo-system-ui";
+import Settings from "./settings";
 
 const Stack = createNativeStackNavigator()
 
@@ -20,7 +23,9 @@ const HomeHeader = () => {
     const navigation = useNavigation()
     const dispatch = useDispatch()
 
+    SystemUI.setBackgroundColorAsync("#222831");
     const handlePress = () => {
+        console.log("inside")
         if (loggedId) {
             //navigation.navigate("UserDetails")
             dispatch({type: "LOGOUT"})
@@ -37,6 +42,15 @@ const HomeHeader = () => {
     )
 
 }
+const SettingsIcon = () => {
+    const navigation = useNavigation()
+    const handlePress = () => {
+        navigation.navigate("Settings")
+    }
+    return <TouchableOpacity onPress={handlePress}>
+        <Feather name="settings" size={28} color="#00ADB5"/>
+    </TouchableOpacity>
+}
 const EmptyIcon = () => {
 
     return <View>
@@ -50,16 +64,23 @@ export default function Index() {
         'azonix': require('../assets/fonts/azonix.otf'),
     });
 
-    const CustomHeader = ({title, goBack, rightElement}) => {
+    const CustomHeader = ({title, goBack, rightElement, leftElement}) => {
+        const renderLeft = () => {
+            if (goBack) {
+                return <TouchableOpacity
+                    onPress={navigation.goBack}
+                >
+                    <Ionicons name="arrow-back-outline" size={25} color="#FFFFFF"/>
+                </TouchableOpacity>
+            } else if (leftElement) {
+                return leftElement
+            } else {
+                return <EmptyIcon/>
+            }
+        }
         return (
             <View className={"bg-[#222831] flex-row items-center p-2"}>
-                {
-                    goBack ? <TouchableOpacity
-                        onPress={navigation.goBack}
-                    >
-                        <Ionicons name="arrow-back-outline" size={25} color="#FFFFFF"/>
-                    </TouchableOpacity> : <EmptyIcon/>
-                }
+                {renderLeft()}
 
                 <Text className={"font-azonix text-3xl flex-1 text-center text-white"} numberOfLines={1}
                       ellipsizeMode="tail">
@@ -88,20 +109,23 @@ export default function Index() {
                     headerStyle: {
                         backgroundColor: "#222831"
                     },
-                    animation: "ios",
+                    animation: "default",
                     animationDuration: 1,
                 }} initialRouteName={"Home"}>
 
                     <Stack.Screen name="Home" options={{
                         headerRight: () => <HomeHeader/>, headerTitle: "Royaltis",
-                        header: () => <CustomHeader title="Royaltis" goBack={false} rightElement={<HomeHeader/>}/>,
+                        header: () => <CustomHeader title="Royaltis" goBack={false} rightElement={<HomeHeader/>}
+                                                    leftElement={<SettingsIcon/>}/>,
                     }} component={Home}/>
 
                     <Stack.Screen name="Editor"
                                   options={{header: () => <CustomHeader title={"map editor"} goBack={true}/>}}
                                   component={Editor}/>
 
-                    <Stack.Screen name="Game" component={Game}/>
+                    <Stack.Screen name="Game" component={Game}
+                                  options={{header: () => <CustomHeader title={"Game"} goBack={true}/>}}
+                    />
 
                     <Stack.Screen name={"GC"} options={{
                         header: () => <CustomHeader title={"preview"} goBack={true}/>
@@ -116,9 +140,13 @@ export default function Index() {
                                       header: () => <CustomHeader title={"Login"} goBack={true}/>
                                   }}
                     />
-                </Stack.Navigator> : <View className={"bg-red-600"}>
-                    <Text className={"bg-white"}>LOADING</Text>
-                </View>
+                    <Stack.Screen name={"StartGame"} component={StartGame} options={{
+                        header: () => <CustomHeader title={"Start Game"} goBack={true}/>
+                    }}/>
+                    <Stack.Screen name={"Settings"} component={Settings} options={{
+                        header: () => <CustomHeader title={"Settings"} goBack={true}/>
+                    }}/>
+                </Stack.Navigator> : <View className="flex-1 bg-black"/>
             }
         </Provider>
 
