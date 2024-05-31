@@ -1,12 +1,11 @@
-import {Text, TextInput, ToastAndroid, TouchableOpacity, View} from "react-native";
+import {ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View} from "react-native";
 import {FontAwesome5, MaterialIcons} from "@expo/vector-icons";
-import MapView, {Callout, Marker, Polygon} from "react-native-maps";
+import MapView, {Marker, Polygon} from "react-native-maps";
 import {useNavigation, useRoute} from "@react-navigation/native";
 import {customMapStyle} from "./styles/mapStyles";
-import {getInitialRegion} from "../src/utilities/Utils";
-import {useState, useRef} from "react"
-import axios from "axios";
-import {ipAddress} from "./constants";
+import {getAPIUrlFromStorage, getInitialRegion, getTokenFromStorage, showAPIConfigAlert} from "./Utils";
+import {useState} from "react"
+
 export default function GameConfirmation() {
 
     const route = useRoute()
@@ -22,34 +21,63 @@ export default function GameConfirmation() {
     const finalData = [borderMarkers, lootboxMarkers, [mapCenter], [{type: "gameName", value: gameName}]]
 
     const [loading, setLoading] = useState(false);
-    const uploadGameData =async () =>{
-        setLoading(true)
-        try{
-            axios.defaults.headers.common = {
-                "Authorization": "fK/na9RvJZPfevoC0IkVNz7S2MA4plEno/R+9hMGhnY=",
-                "Content-Type": "application/json"
-            };
-            const response = await axios.post("http://"+ipAddress+":8080/creategame", finalData)
 
-
-            if (response.status === 200 || response.status === 201){
-                navigation.reset({
-                    index:0,
-                    routes: [{name: "Home"}]
-                })
-                console.log("data uploaded")
-                ToastAndroid.show("Data successfully uploaded!", ToastAndroid.SHORT)
-
-            }else{
-                console.log("Error uploading data", response.status, response.data)
-            }
-
-        }catch (error){
-            console.log(error)
-        }finally {
-            setLoading(false)
+    const uploadGameData = async () => {
+        const API_BASE_URL = await getAPIUrlFromStorage();
+        if (API_BASE_URL == null) {
+            showAPIConfigAlert(navigation);
+            setLoading(false); // Ensure loading is set to false if API URL is missing
+            return;
         }
-    }
+
+        const token = await getTokenFromStorage();
+        console.log("found token: " + token);
+        setLoading(true);
+
+        try {
+            const response = await fetch(API_BASE_URL + ":8082/creategame", {
+                method: "POST",
+                headers: {
+                    "Authorization": token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(finalData)
+            });
+
+            if (response.status === 200 || response.status === 201) {
+                navigation.reset({
+                    index: 0,
+                    routes: [{name: "Home"}]
+                });
+                console.log("data uploaded");
+
+                Alert.alert(
+                    "Success",
+                    "Data successfully uploaded!",
+                    [{text: "OK"}]
+                );
+            } else {
+                const errorData = await response;
+                Alert.alert(
+                    "Server error",
+                    errorData.message || "Unknown error",
+                    [{text: "OK"}]
+                );
+            }
+        } catch (error) {
+            console.log(error);
+            Alert.alert(
+                "Network error",
+                error.message + ": The API endpoint is down or has wrong configuration",
+                [{text: "OK"}, {
+                    text: "configure", onPress: () => navigation.navigate("Settings")
+                }]
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <View className={"flex-1 bg-[#4D5B66]"}>
             <View className={"flex-1 w-full p-2 justify-evenly pb-6"}>
@@ -64,7 +92,7 @@ export default function GameConfirmation() {
                         rotateEnabled={false}
                         toolbarEnabled={false}
                         moveOnMarkerPress={false}
-                        
+
                     >
 
                         {
@@ -85,8 +113,8 @@ export default function GameConfirmation() {
                             borderMarkers.map((curr) => {
                                 return <Marker
                                     key={curr.id}
-                                    coordinate={{ latitude: curr.coords.latitude, longitude: curr.coords.longitude }}
-                                    anchor={{ x: 0.5, y: 0.5 }}
+                                    coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
+                                    anchor={{x: 0.5, y: 0.5}}
                                     icon={require("../assets/icons/dot_optimized.png")}
                                 >
                                 </Marker>
@@ -136,7 +164,10 @@ export default function GameConfirmation() {
                     onPress={() => uploadGameData()}
                 >
                     <Text className={"text-center mr-3 text-2xl font-bold text-white"}>Upload game data</Text>
-                    <FontAwesome5 name="cloud-upload-alt" size={28} color="#00ADB5"/>
+                    {
+                        loading ? <ActivityIndicator size={28}/> :
+                            <FontAwesome5 name="cloud-upload-alt" size={28} color="#00ADB5"/>
+                    }
                 </TouchableOpacity>
             </View>
         </View>
