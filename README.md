@@ -13,7 +13,7 @@ Royaltis is a cutting-edge mobile app designed to elevate your real-world Airsof
 
 ## 📥 Installation 📥
 
-1. **Go to Releases:** Navigate to the [Releases](https://your-repository-url/releases) section of this GitHub repository.
+1. **Go to Releases:** Navigate to the [Releases](https://github.com/riveerxd/royaltis_frontend/releases) section of this GitHub repository.
 
 2. **Download APK:** Locate the latest release and download the APK file for your Android device.
 
