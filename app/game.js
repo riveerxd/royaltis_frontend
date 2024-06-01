@@ -176,32 +176,7 @@ export default function Game() {
 
                 setSocket(newSocket)
 
-                let isAlertShown = false;
-
-                const checkConnectionInterval = setInterval(() => {
-                    if (!newSocket.connected && !isAlertShown) {
-                        isAlertShown = true;
-                        Alert.alert(
-                            "Disconnected from server",
-                            "The connection to the server was lost",
-                            [
-                                {
-                                    text: "OK",
-                                    onPress: () => {
-                                        navigation.reset({
-                                            index: 0,
-                                            routes: [{name: "Home"}],
-                                        });
-                                        isAlertShown = false;
-                                    },
-                                },
-                            ]
-                        );
-                    }
-                }, 5000);
-
                 return () => {
-                    clearInterval(checkConnectionInterval);
                     newSocket.disconnect();
                     setSocket("disconnected");
                 };
@@ -328,6 +303,12 @@ export default function Game() {
             </View>
         )
     }
+
+    const [imageLoading, setImageLoading] = useState(false)
+
+    const handleOnLayout = () => {
+        setImageLoading(true)
+    }
     return (
         <GestureHandlerRootView style={{flex: 1}}>
             <View className={"flex-row bg-[#222831] p-2 rounded-b-xl"}>
@@ -393,7 +374,10 @@ export default function Game() {
 
                                 >
                                     <Image source={require("../assets/icons/dot_optimized.png")}
-                                           style={{height: 25, width: 25}}/>
+                                           style={{height: 15, width: 15}}
+                                           onLayout={handleOnLayout}
+                                           key={`key-${imageLoading}${curr.id}`}
+                                    />
 
                                 </Marker>
                             }) : ""
@@ -411,7 +395,9 @@ export default function Game() {
                                 tracksViewChanges={false}
                             >
                                 <Image source={require("../assets/icons/center(1).png")}
-                                       style={{height: 25, width: 25}}/>
+                                       style={{height: 25, width: 25}}
+                                       onLayout={handleOnLayout}
+                                       key={`key-${imageLoading}`}/>
 
                             </Marker>
                         }
@@ -428,7 +414,9 @@ export default function Game() {
                                     tracksViewChanges={false}
                                 >
                                     <Image source={require("../assets/icons/lootbox_optimized(2).png")}
-                                           style={{height: 25, width: 25}}/>
+                                           style={{height: 25, width: 25}}
+                                           onLayout={handleOnLayout}
+                                           key={`key-${imageLoading}${curr.id}`}/>
 
                                 </Marker>
                             })
