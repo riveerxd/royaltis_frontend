@@ -1,4 +1,4 @@
-# 📱 Royaltis: The Airsoft Game Extension 🚀
+# Royaltis: The Airsoft Game Extension 🚀
 
 Royaltis is a cutting-edge mobile app designed to elevate your real-world Airsoft experience to the next level. It seamlessly blends the physical and digital realms, enhancing gameplay, strategy, and team coordination.
 
