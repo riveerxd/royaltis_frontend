@@ -34,10 +34,6 @@ Royaltis is a cutting-edge mobile app designed to elevate your real-world Airsof
     - Create, manage, and view game lobbies.
     - Start the game to activate the dynamic border shrinking.
 
-## 🤝 Contributing 🤝
-
-We welcome contributions! Feel free to open issues or submit pull requests to help improve Royaltis. 
-
 ## 🚀 Get Started 🚀
 
 Download Royaltis today and revolutionize your Airsoft battles! 💥
