@@ -426,6 +426,11 @@ export default function Editor() {
         )
     }
 
+    const [imageLoading, setImageLoading] = useState(false)
+
+    const handleOnLayout = () => {
+        setImageLoading(true)
+    }
 
     return (
         <GestureHandlerRootView style={{flex: 1}}>
@@ -491,8 +496,13 @@ export default function Editor() {
                                 tracksViewChanges={false}
 
                             >
-                                <Image source={require('../assets/icons/questionmark_optimized.png')}
-                                       style={{height: 25, width: 25}}/>
+                                <Image
+                                    source={require('../assets/icons/questionmark_optimized.png')}
+                                    style={{height: 25, width: 25}}
+                                    onLayout={handleOnLayout}
+                                    key={`key-${imageLoading}${curr.id}`}
+                                />
+
                             </Marker>
                         })
                     }
@@ -508,7 +518,10 @@ export default function Editor() {
 
                             >
                                 <Image source={require("../assets/icons/dot_optimized.png")}
-                                       style={{height: 25, width: 25}}/>
+                                       style={{height: 15, width: 15}}
+                                       onLayout={handleOnLayout}
+                                       key={`key-${imageLoading}${curr.id}`}/>
+
                             </Marker>
                         })
                     }
@@ -520,7 +533,10 @@ export default function Editor() {
                             anchor={{x: 0.5, y: 0.5}}
                             tracksViewChanges={false}
                         >
-                            <Image source={require("../assets/icons/center(1).png")} style={{height: 25, width: 25}}/>
+                            <Image source={require("../assets/icons/center(1).png")} style={{height: 25, width: 25}}
+                                   onLayout={handleOnLayout}
+                                   key={`key-${imageLoading}`}
+                            />
                         </Marker> : null
                     }
 
@@ -536,7 +552,9 @@ export default function Editor() {
                             >
 
                                 <Image source={require("../assets/icons/lootbox_optimized(2).png")}
-                                       style={{height: 25, width: 25}}/>
+                                       style={{height: 25, width: 25}}
+                                       onLayout={handleOnLayout}
+                                       key={`key-${imageLoading}${curr.id}`}/>
 
                             </Marker>
                         })
