@@ -119,6 +119,11 @@ export default function GameList() {
     const lootboxData = data[2]
     const middlePoints = data[3]
 
+    const [imageLoading, setImageLoading] = useState(false)
+
+    const handleOnLayout = () => {
+        setImageLoading(true)
+    }
 
     const feed = () => {
         {
@@ -175,7 +180,10 @@ export default function GameList() {
                                             tracksViewChanges={false}
                                         >
                                             <Image source={require("../assets/icons/dot_optimized.png")}
-                                                   style={{height: 25, width: 25}}/>
+                                                   style={{height: 15, width: 15}}
+                                                   onLayout={handleOnLayout}
+                                                   key={`key-${imageLoading}${curr.id}`}
+                                            />
 
                                         </Marker>
                                     }
@@ -191,8 +199,9 @@ export default function GameList() {
                                     tracksViewChanges={false}
                                 >
                                     <Image source={require("../assets/icons/center(1).png")}
-                                           style={{height: 25, width: 25}}/>
-
+                                           style={{height: 25, width: 25}}
+                                           onLayout={handleOnLayout}
+                                           key={`key-${imageLoading}`}/>
                                 </Marker>
 
                             }
@@ -208,7 +217,9 @@ export default function GameList() {
                                             tracksViewChanges={false}
                                         >
                                             <Image source={require("../assets/icons/lootbox_optimized(2).png")}
-                                                   style={{height: 25, width: 25}}/>
+                                                   style={{height: 25, width: 25}}
+                                                   onLayout={handleOnLayout}
+                                                   key={`key-${imageLoading}${curr.id}`}/>
                                         </Marker>
                                     }
                                 })
