@@ -1,4 +1,4 @@
-import {ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View} from "react-native";
+import {ActivityIndicator, Alert, Image, Text, TextInput, TouchableOpacity, View} from "react-native";
 import {FontAwesome5, MaterialIcons} from "@expo/vector-icons";
 import MapView, {Marker, Polygon} from "react-native-maps";
 import {useNavigation, useRoute} from "@react-navigation/native";
@@ -78,8 +78,17 @@ export default function GameConfirmation() {
         }
     };
 
+    const [imageLoading, setImageLoading] = useState(false)
+
+    const handleOnLayout = () => {
+        setImageLoading(true)
+    }
+
     return (
         <View className={"flex-1 bg-[#4D5B66]"}>
+            {
+                console.log(JSON.stringify(finalData))
+            }
             <View className={"flex-1 w-full p-2 justify-evenly pb-6"}>
                 <View className={"block w-full h-[50%] rounded-full"} style={{overflow: "hidden", borderRadius: 10}}>
                     <MapView
@@ -115,8 +124,13 @@ export default function GameConfirmation() {
                                     key={curr.id}
                                     coordinate={{latitude: curr.coords.latitude, longitude: curr.coords.longitude}}
                                     anchor={{x: 0.5, y: 0.5}}
-                                    icon={require("../assets/icons/dot_optimized.png")}
+                                    tracksViewChanges={false}
                                 >
+                                    <Image source={require("../assets/icons/dot_optimized.png")}
+                                           style={{height: 15, width: 15}}
+                                           onLayout={handleOnLayout}
+                                           key={`key-${imageLoading}${curr.id}`}
+                                    />
                                 </Marker>
                             })
                         }
@@ -124,8 +138,13 @@ export default function GameConfirmation() {
                         {
                             mapCenter ? (<Marker
                                 coordinate={mapCenter.coords}
-                                icon={require("../assets/icons/center(1).png")}
+                                tracksViewChanges={false}
+                                anchor={{x: 0.5, y: 0.5}}
                             >
+                                <Image source={require("../assets/icons/center(1).png")}
+                                       style={{height: 25, width: 25}}
+                                       onLayout={handleOnLayout}
+                                       key={`key-${imageLoading}`}/>
                             </Marker>) : null
                         }
 
@@ -137,9 +156,12 @@ export default function GameConfirmation() {
                                     key={curr.id}
                                     coordinate={curr.coords}
                                     anchor={{x: 0.5, y: 0.5}}
-                                    icon={require("../assets/icons/lootbox_optimized(2).png")}
+                                    tracksViewChanges={false}
                                 >
-
+                                    <Image source={require("../assets/icons/lootbox_optimized(2).png")}
+                                           style={{height: 25, width: 25}}
+                                           onLayout={handleOnLayout}
+                                           key={`key-${imageLoading}${curr.id}`}/>
 
                                 </Marker>
                             })
